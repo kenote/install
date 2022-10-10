@@ -98,6 +98,7 @@ function start_menu(){
     green " 2. 查看系统信息" 
     yellow " --------------------------------------------------"
     green " 11. 安装最新版 Git" 
+    green " 12. 安装 Htop" 
     green " =================================================="
     green " 0. 退出脚本"
     echo
@@ -114,9 +115,17 @@ function start_menu(){
         11 )
             clear
             if (is_oversea); then
-                wget -O install-git.sh https://raw.githubusercontent.com/kenote/install/main/linux/install-git.sh && chmod +x install-git.sh && clear && ./install-git.sh
+                curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-git.sh | bash
             else
-                wget -O install-git.sh https://gitee.com/kenote/install/raw/main/linux/install-git.sh && chmod +x install-git.sh && clear && ./install-git.sh
+                curl -o- https://gitee.com/kenote/install/raw/main/linux/install-git.sh | bash
+            fi
+        ;;
+        12 )
+            clear
+            if (is_oversea); then
+                curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-htop.sh | bash
+            else
+                curl -o- https://gitee.com/kenote/install/raw/main/linux/install-htop.sh | bash
             fi
         ;;
         0 )

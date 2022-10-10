@@ -14,7 +14,7 @@ apt update
 apt install -y curl wget net-tools bc
 ```
 
-## 一键安装
+## 安装工具箱
 
 海外
 ```bash
@@ -31,10 +31,22 @@ wget -O start.sh https://gitee.com/kenote/install/raw/main/linux/start.sh && chm
 
 海外
 ```bash
-wget -O install-git.sh https://raw.githubusercontent.com/kenote/install/main/linux/install-git.sh && chmod +x install-git.sh && clear && ./install-git.sh
+curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-git.sh | bash
 ```
 
 国内
 ```bash
-wget -O install-git.sh https://gitee.com/kenote/install/raw/main/linux/install-git.sh && chmod +x install-git.sh && clear && ./install-git.sh
+curl -o- https://gitee.com/kenote/install/raw/main/linux/install-git.sh | bash
+```
+
+### Htop
+
+海外
+```bash
+curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-htop.sh | bash
+```
+
+国内
+```bash
+curl -o- https://gitee.com/kenote/install/raw/main/linux/install-htop.sh | bash
 ```

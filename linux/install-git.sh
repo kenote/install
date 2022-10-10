@@ -1,6 +1,5 @@
 #! /bin/bash
 
-type=$1
 git_release="git-2.37.1"
 
 # 判断是否海外网络
@@ -24,6 +23,7 @@ function init_env(){
 
 # 安装 git
 function install_git(){
+    echo -e "开始安装 ${git_release} ..."
     cd $HOME
     if [[ $system == 'debian' ]]; then
         sudo apt install -y  build-essential
