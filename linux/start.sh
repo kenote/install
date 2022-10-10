@@ -35,6 +35,11 @@ check_sys(){
     fi
 }
 
+# 判断是否海外网络
+function is_oversea(){
+    curl --connect-timeout 5 https://www.google.com -s --head | head -n 1 | grep "HTTP/1.[01] [23].." &> /dev/null;
+}
+
 # 获取公网ip
 function getip(){
     echo
@@ -86,10 +91,13 @@ function start_menu(){
     clear
     red " Kenote 综合工具箱 Linux Supported ONLY" 
     green " FROM: https://github.com/kenote/install "
-    green " USE:  wget -O start.sh https://raw.githubusercontent.com/kenote/install/main/start.sh && chmod +x start.sh && clear && ./start.sh "
+    green " 海外:  wget -O start.sh https://raw.githubusercontent.com/kenote/install/main/linux/start.sh && chmod +x start.sh && clear && ./start.sh "
+    green " 国内:  wget -O start.sh https://gitee.com/kenote/install/raw/main/linux/start.sh && chmod +x start.sh && clear && ./start.sh "
     yellow " =================================================="
     green " 1. 获取公网IP" 
     green " 2. 查看系统信息" 
+    yellow " --------------------------------------------------"
+    green " 11. 安装最新版 Git" 
     green " =================================================="
     green " 0. 退出脚本"
     echo
@@ -102,6 +110,14 @@ function start_menu(){
         2 )
             clear
             getsys
+        ;;
+        11 )
+            clear
+            if (is_oversea); then
+                wget -O install-git.sh https://raw.githubusercontent.com/kenote/install/main/linux/install-git.sh && chmod +x install-git.sh && clear && ./install-git.sh
+            else
+                wget -O install-git.sh https://gitee.com/kenote/install/raw/main/linux/install-git.sh && chmod +x install-git.sh && clear && ./install-git.sh
+            fi
         ;;
         0 )
             clear
@@ -126,6 +142,13 @@ case $type in
     ;;
     system )
         getsys
+    ;;
+    oversea )
+        if (is_oversea); then
+            echo 1
+        else
+            echo 0
+        fi
     ;;
     * )
         check_sys
