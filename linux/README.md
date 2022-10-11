@@ -4,13 +4,13 @@
 
 `Redhat / CentOS`
 ```bash
-yum update
+yum update -y
 yum install -y curl wget net-tools
 ```
 
 `Debian / Ubuntu`
 ```bash
-apt update
+apt update -y
 apt install -y curl wget net-tools bc
 ```
 
@@ -49,4 +49,35 @@ curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-hto
 国内
 ```bash
 curl -o- https://gitee.com/kenote/install/raw/main/linux/install-htop.sh | bash
+```
+
+### Nginx
+
+海外
+```bash
+# 安装 nginx
+curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh | bash
+
+# 升级 openssl 1.1.1
+bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh) openssl
+
+# 更新 nginx 替换系统原有的，以支持 TLS1.3
+bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh) update
+
+# 移除 nginx
+bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh) remove
+```
+
+国内
+```bash
+curl -o- https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh | bash
+
+# 升级 openssl 1.1.1
+bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh) openssl
+
+# 更新 nginx 替换系统原有的，以支持 TLS1.3
+bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh) update
+
+# 移除 nginx
+bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh) remove
 ```

@@ -99,6 +99,9 @@ function start_menu(){
     yellow " --------------------------------------------------"
     green " 11. 安装最新版 Git" 
     green " 12. 安装 Htop" 
+    green " 13. 安装 Nginx 新版"
+    green " 14. 升级 OpenSSL 1.1.1"
+    green " 15. 更新 Nginx, 以支持 TLS1.3"
     green " =================================================="
     green " 0. 退出脚本"
     echo
@@ -126,6 +129,30 @@ function start_menu(){
                 curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-htop.sh | bash
             else
                 curl -o- https://gitee.com/kenote/install/raw/main/linux/install-htop.sh | bash
+            fi
+        ;;
+        13 )
+            clear
+            if (is_oversea); then
+                curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh | bash
+            else
+                curl -o- https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh | bash
+            fi
+        ;;
+        14 )
+            clear
+            if (is_oversea); then
+                bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh) openssl
+            else
+                bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh) openssl
+            fi
+        ;;
+        15 )
+            clear
+            if (is_oversea); then
+                bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh) update
+            else
+                bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh) update
             fi
         ;;
         0 )

@@ -26,7 +26,7 @@ function install_htop(){
     else
         echo -e "开始安装 htop ..."
         cd $HOME
-        if [[ $system == 'center' ]]; then
+        if [[ $system == 'centos' ]]; then
             version=`cat /etc/os-release | grep "VERSION_ID" | sed 's/\(.*\)=\"\(.*\)\"/\2/g'`
             yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-$version.noarch.rpm -y
             yum install -y htop
