@@ -102,6 +102,12 @@ function start_menu(){
     green " 13. 安装 Nginx 新版"
     green " 14. 升级 OpenSSL 1.1.1"
     green " 15. 更新 Nginx, 以支持 TLS1.3"
+    yellow " --------------------------------------------------"
+    green " 31. 创建 Nginx 站点并申请 Let's Encrypt 证书"
+    green " 32. 查看 Nginx 信息"
+    green " 33. 更改 Nginx 配置文件路径"
+    green " 34. 禁止使用 IP 访问"
+    green " 35. 开启使用 IP 访问"
     green " =================================================="
     green " 0. 退出脚本"
     echo
@@ -153,6 +159,46 @@ function start_menu(){
                 bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh) update
             else
                 bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh) update
+            fi
+        ;;
+        31 )
+            clear
+            if (is_oversea); then
+                wget -O nginx.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh create
+            else
+                wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh create
+            fi
+        ;;
+        32 )
+            clear
+            if (is_oversea); then
+                wget -O nginx.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh info
+            else
+                wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh info
+            fi
+        ;;
+        33 )
+            clear
+            if (is_oversea); then
+                wget -O nginx.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh workdir
+            else
+                wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh workdir
+            fi
+        ;;
+        34 )
+            clear
+            if (is_oversea); then
+                wget -O nginx.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh not_useip
+            else
+                wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh not_useip
+            fi
+        ;;
+        35 )
+            clear
+            if (is_oversea); then
+                wget -O nginx.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh yes_useip
+            else
+                wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh yes_useip
             fi
         ;;
         0 )

@@ -120,6 +120,28 @@ function update_nginx(){
     systemctl restart nginx
 }
 
+# 安装 acme.sh
+function install_acmesh(){
+    echo -e "开始安装 acme.sh"
+    if [[ $system == 'centos' ]]; then
+        yum install -y socat
+    else
+        apt install -y socat
+    fi
+    cd $HOME
+    if (is_oversea); then
+        curl https://get.acme.sh | sh
+    else
+        curl -o- https://gitee.com/neilpang/acme.sh/raw/master/acme.sh | sh
+    fi
+    acmeci=$HOME/.acme.sh/acme.sh
+    read -p "请设置一个邮箱: " email
+    $acmeci --register-account -m $email
+    echo -e "设置自动更新 ..."
+    $acmeci --upgrade --auto-upgrade
+    echo -e "acme.sh 安装完成"
+}
+
 init_env
 case $type in
     openssl )
@@ -130,6 +152,9 @@ case $type in
     ;;
     remove )
         remove_nginx
+    ;;
+    acmesh )
+        install_acmesh
     ;;
     * )
         install_nginx

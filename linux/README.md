@@ -66,10 +66,29 @@ bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/insta
 
 # 移除 nginx
 bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh) remove
+
+# 安装 acme.sh
+bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh) acmesh
+
+# 创建 Nginx 站点
+wget -O nginx.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh create
+
+# 查看 Nginx 信息
+wget -O nginx.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh info
+
+# 更改 Nginx 配置文件路径
+wget -O nginx.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh workdir
+
+# 禁止使用 IP 访问
+wget -O nginx.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh not_useip
+
+# 开启使用 IP 访问
+wget -O nginx.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh yes_useip
 ```
 
 国内
 ```bash
+# 安装 nginx
 curl -o- https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh | bash
 
 # 升级 openssl 1.1.1
@@ -80,4 +99,24 @@ bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh)
 
 # 移除 nginx
 bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh) remove
+
+# 安装 acme.sh
+bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh) acmesh
+
+# 创建 Nginx 站点
+wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh create
+
+# 查看 Nginx 信息
+wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh info
+
+# 更改 Nginx 配置文件路径
+wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh workdir
+
+# 禁止使用 IP 访问
+wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh not_useip
+
+# 开启使用 IP 访问
+wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh yes_useip
 ```
+
+
