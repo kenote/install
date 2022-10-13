@@ -138,3 +138,29 @@ wget -O swap.sh https://gitee.com/kenote/install/raw/main/linux/swap.sh && chmod
 # 移除 SWAP
 wget -O swap.sh https://gitee.com/kenote/install/raw/main/linux/swap.sh && chmod +x swap.sh && clear && ./swap.sh remove
 ```
+
+### Docker
+
+海外
+```bash
+# 安装 docker 和 docker-componse
+curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-docker.sh | bash
+
+# 删除 docker 和 docker-componse
+bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-docker.sh) remove
+
+# 优化配置
+bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-docker.sh) daemon
+```
+
+国内
+```bash
+# 安装 docker 和 docker-componse
+curl -o- https://gitee.com/kenote/install/raw/main/linux/install-docker.sh | bash
+
+# 删除 docker 和 docker-componse
+bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-docker.sh) remove
+
+# 优化配置
+bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-docker.sh) daemon
+```

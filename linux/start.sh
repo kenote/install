@@ -104,6 +104,9 @@ function start_menu(){
     green " 13. 安装 Nginx 新版"
     green " 14. 升级 OpenSSL 1.1.1"
     green " 15. 更新 Nginx, 以支持 TLS1.3"
+    green " 16. 安装 Docker / Docker Compose"
+    green " 17. 删除 Docker / Docker Compose"
+    green " 18. 优化 Docker 配置"
     yellow " --------------------------------------------------"
     green " 31. 创建 Nginx 站点并申请 Let's Encrypt 证书"
     green " 32. 查看 Nginx 信息"
@@ -177,6 +180,30 @@ function start_menu(){
                 bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh) update
             else
                 bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh) update
+            fi
+        ;;
+        16 )
+            clear
+            if (is_oversea); then
+                curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-docker.sh | bash
+            else
+                curl -o- https://gitee.com/kenote/install/raw/main/linux/install-docker.sh | bash
+            fi
+        ;;
+        17 )
+            clear
+            if (is_oversea); then
+                bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-docker.sh) remove
+            else
+                bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-docker.sh) remove
+            fi
+        ;;
+        18 )
+            clear
+            if (is_oversea); then
+                bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-docker.sh) daemon
+            else
+                bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-docker.sh) daemon
             fi
         ;;
         31 )
