@@ -96,6 +96,8 @@ function start_menu(){
     yellow " =================================================="
     green " 1. 获取公网IP" 
     green " 2. 查看系统信息" 
+    green " 3. 创建 SWAP" 
+    green " 4. 移除 SWAP" 
     yellow " --------------------------------------------------"
     green " 11. 安装最新版 Git" 
     green " 12. 安装 Htop" 
@@ -120,6 +122,22 @@ function start_menu(){
         2 )
             clear
             getsys
+        ;;
+        3 )
+            clear
+            if (is_oversea); then
+                wget -O swap.sh https://raw.githubusercontent.com/kenote/install/main/linux/swap.sh && chmod +x swap.sh && clear && ./swap.sh create
+            else
+                wget -O swap.sh https://gitee.com/kenote/install/raw/main/linux/swap.sh && chmod +x swap.sh && clear && ./swap.sh create
+            fi
+        ;;
+        4 )
+            clear
+            if (is_oversea); then
+                wget -O swap.sh https://raw.githubusercontent.com/kenote/install/main/linux/swap.sh && chmod +x swap.sh && clear && ./swap.sh remove
+            else
+                wget -O swap.sh https://gitee.com/kenote/install/raw/main/linux/swap.sh && chmod +x swap.sh && clear && ./swap.sh remove
+            fi
         ;;
         11 )
             clear

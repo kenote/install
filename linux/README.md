@@ -119,4 +119,22 @@ wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chm
 wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh yes_useip
 ```
 
+### SWAP
 
+海外
+```bash
+# 创建 SWAP
+wget -O swap.sh https://raw.githubusercontent.com/kenote/install/main/linux/swap.sh && chmod +x swap.sh && clear && ./swap.sh create
+
+# 移除 SWAP
+wget -O swap.sh https://raw.githubusercontent.com/kenote/install/main/linux/swap.sh && chmod +x swap.sh && clear && ./swap.sh remove
+```
+
+国内
+```bash
+# 创建 SWAP
+wget -O swap.sh https://gitee.com/kenote/install/raw/main/linux/swap.sh && chmod +x swap.sh && clear && ./swap.sh create
+
+# 移除 SWAP
+wget -O swap.sh https://gitee.com/kenote/install/raw/main/linux/swap.sh && chmod +x swap.sh && clear && ./swap.sh remove
+```
