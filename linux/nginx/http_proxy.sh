@@ -221,13 +221,15 @@ set_proxy_env() {
             done
         fi
         # 选择关联配置
-        echo -e "选择关联配置: $confdir"
-        select item in `ls $confdir`;
-        do
-            _confile=$item
-            echo -e "${yellow}关联配置文件: ${item}${plain}"
-            break
-        done
+        if [[ $_confile == '' ]]; then
+            echo -e "选择关联配置: $confdir"
+            select item in `ls $confdir`;
+            do
+                _confile=$item
+                echo -e "${yellow}关联配置文件: ${item}${plain}"
+                break
+            done
+        fi
     fi
     if [[ $_type == 'virtual' ]]; then
         if [[ $_root == '' ]]; then
@@ -297,7 +299,7 @@ $(
         " > $workdir/proxys/$site_name/$proxy_name.conf
         echo -e "${green}写入代理配置-[$proxy_name.conf]-到-[$site_name]-完成${plain}"
     else
-        exit 0
+        return 1
     fi
 }
 
