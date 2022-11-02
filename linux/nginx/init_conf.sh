@@ -42,7 +42,6 @@ init_nginx_conf() {
     mkdir -p $workdir/proxys
     mkdir -p $workdir/upstream
     mkdir -p $workdir/stream/server
-    mkdir -p $workdir/stream/upstream
     # 备份原配置文件
     cp -r $confdir/.  $conflink.bak
     # 移动配置目录
@@ -69,7 +68,7 @@ init_nginx_conf() {
     echo -e "
 stream {
     include $workdir/stream/server/*.conf;
-    include $workdir/stream/upstream/*.conf;
+    include $workdir/upstream/*.conf;
 }
     " > $workdir/stream/index.conf
     # 重启 nginx

@@ -21,6 +21,7 @@ get_nginx_env() {
         workdir=`readlink -f ${conflink} | sed -e 's/\/conf$//'`
         ssldir=$workdir/ssl
     fi
+    mkdir -p $workdir/upstream
 }
 
 confirm() {

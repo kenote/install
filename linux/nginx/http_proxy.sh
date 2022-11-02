@@ -21,6 +21,7 @@ get_nginx_env() {
         workdir=`readlink -f ${conflink} | sed -e 's/\/conf$//'`
         ssldir=$workdir/ssl
     fi
+    mkdir -p $workdir/proxys
 }
 
 confirm() {
@@ -50,13 +51,25 @@ add_inbounds() {
         done
     fi
     site_name=`echo $confile | sed 's/\.conf$//'`
-    inbounds=`cat $confdir/$confile | grep "/inbounds/\*.conf;"`;
+    inbounds=`cat $confdir/$confile | grep "/inbounds/\*.inbound;"`;
+    mkdir -p $workdir/inbounds
+    sleep 5
     if [[ $inbounds == '' ]]; then
-        sed -i "/proxys\/${site_name}\/\*.conf;/a\    include $workdir/inbounds/\*.conf;" $confdir/$confile
+        remove_inbounds
+        sleep 1
+        sed -i "/proxys\/${site_name}\/\*.conf;/a\    include $workdir/inbounds/\*.inbound;" $confdir/$confile
         echo -e "${green}已成功加入 [inbounds] 到站点配置-[${confile}]-${plain}"
     else
         echo -e "${yellow}[inbounds] 已经存在站点配置-[${confile}]-中, 无需添加${plain}"
+        return 1
     fi
+}
+
+remove_inbounds() {
+    for item in `ls $confdir`;
+    do
+        sed -i "/inbounds\/\*.inbound;/d" $confdir/$item
+    done
 }
 
 set_proxy_env() {

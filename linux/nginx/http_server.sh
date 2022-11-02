@@ -53,6 +53,7 @@ get_nginx_env() {
         workdir=`readlink -f ${conflink} | sed -e 's/\/conf$//'`
         ssldir=$workdir/ssl
     fi
+    mkdir -p $workdir/logs
 }
 
 confirm() {
@@ -381,6 +382,32 @@ remove_server() {
     fi
 }
 
+disable_useip() {
+    # 创建一张默认证书
+    mkdir -p ${ssldir}
+    openssl req -newkey rsa:2048 -nodes -keyout ${ssldir}/private.key -x509 -days 365 -out ${ssldir}/cert.crt -subj "/C=CN"
+    # 写入配置
+    cat > ${confdir}/default.conf <<EOF
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    return 400;
+}
+
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+  
+    ssl_certificate ${ssldir}/cert.crt;
+    ssl_certificate_key ${ssldir}/private.key;
+    
+    server_name _;
+    return 400;
+}
+EOF
+}
+
 get_proxy_list() {
     _domain=$1
     list=(代理列表 添加代理 返回上级)
@@ -480,17 +507,19 @@ get_proxy_list() {
 
 server_opts() {
     confile=$1
-    type=""
-    list=(查看配置 删除配置 反向代理 SSL证书 返回上级)
-    clear
-    echo
-    echo -e "${yellow}--站点[${confile}]--${plain}"
-    echo
-    select item in ${list[@]};
-    do
-        type=$item
-        break
-    done
+    type=$2
+    list=(查看配置 查看日志 删除配置 反向代理 SSL证书 返回上级)
+    if [[ $type == '' ]]; then
+        clear
+        echo
+        echo -e "${yellow}--站点[${confile}]--${plain}"
+        echo
+        select item in ${list[@]};
+        do
+            type=$item
+            break
+        done
+    fi
     case $type in
     查看配置)
         clear
@@ -499,6 +528,27 @@ server_opts() {
         read  -n1  -p "按任意键继续" key
         clear
         server_opts $confile
+    ;;
+    查看日志)
+        clear
+        list=(access.log error.log 返回上级)
+        logfile=""
+        select item in ${list[@]};
+        do
+            if [[ $item == '返回上级' ]]; then
+                clear
+                server_opts $confile
+                return 1
+            fi
+            logfile=$item
+            break
+        done
+        domain=`echo $confile | sed 's/\.conf$//'`
+        cat $workdir/logs/$domain/$logfile
+        sleep 3
+        read  -n1  -p "按任意键继续" key
+        clear
+        server_opts $confile "查看日志"
     ;;
     删除配置)
         clear
@@ -531,7 +581,11 @@ server_opts() {
             set_server --domain $domain --ssl --force-https --cert-file $ssldir/$domain/cert.crt --key-file $ssldir/$domain/private.key --yes
             # 重启 nginx
             restart "是否现在重启"
+            sleep 3
+            read  -n1  -p "按任意键继续" key
         fi
+        clear
+        server_opts $confile
     ;;
     返回上级)
         clear
@@ -574,21 +628,59 @@ get_upstream_list() {
     esac
 }
 
+get_stream_list() {
+    stream_file=$1
+    echo -e "${yellow}--TCP代理[$stream_file]--${plain}"
+    list=(查看TCP代理 删除TCP代理 返回上级)
+    opt=""
+    select item in ${list[@]};
+    do
+        opt=$item
+        break
+    done
+    case $opt in
+    查看TCP代理)
+        clear
+        run_script tcp_server.sh get $stream_file
+        sleep 3
+        read  -n1  -p "按任意键继续" key
+        clear
+        get_stream_list $upstream_file
+    ;;
+    删除TCP代理)
+        clear
+        run_script tcp_server.sh del $stream_file
+        sleep 1
+        clear
+        show_menu 5
+    ;;
+    返回上级)
+        clear
+        show_menu 5
+    ;;
+    esac
+}
+
 show_menu() {
     num=$1
     if [[ $1 == '' ]]; then
         echo -e "
-    ${green}-- 站点管理 --${plain}
+  ${green}-- 站点管理 --${plain}
 
-    ${green} 0${plain}. 返回
-    ------------------------
-    ${green} 1${plain}. 站点列表
-    ${green} 2${plain}. 添加站点
-    ------------------------
-    ${green} 3${plain}. 负载均衡列表
-    ${green} 4${plain}. 添加负载均衡
+  ${green} 0${plain}. 返回
+ ------------------------
+  ${green} 1${plain}. 站点列表
+  ${green} 2${plain}. 添加站点
+ ------------------------
+  ${green} 3${plain}. 负载均衡列表
+  ${green} 4${plain}. 添加负载均衡
+  ${green} 5${plain}. TCP代理列表
+  ${green} 6${plain}. 添加TCP代理
+ ------------------------
+  ${green} 7${plain}. 禁止通过IP访问
+  ${green} 8${plain}. 绑定 inbounds
         "
-        echo && read -p "请输入选择 [0-4]: " num
+        echo && read -p "请输入选择 [0-8]: " num
         echo
     fi
     case "${num}" in
@@ -675,9 +767,88 @@ show_menu() {
         clear
         show_menu
     ;;
+    5)
+        clear
+        echo -e "${green}----------------"
+        echo -e "  TCP代理列表"
+        echo -e "----------------${plain}"
+        if [[ -d $workdir/stream/server ]]; then
+            list=`ls $workdir/stream/server`
+            if [[ $list == '' ]]; then
+                echo -e "${yellow}没有TCP代理${plain}"
+                sleep 1
+                clear
+                show_menu
+                return 1
+            fi
+            # echo -e "\n${yellow}选择负载均衡:${plain}\n"
+            stream_file=""
+            select item in `ls $workdir/stream/server` 返回上级;
+            do
+                if [[ $item == '返回上级' ]]; then
+                    clear
+                    show_menu
+                    return 1
+                fi
+                stream_file=$item
+                break
+            done
+            clear
+            get_stream_list $stream_file
+        else
+            echo -e "${yellow}没有TCP代理${plain}"
+            sleep 1
+            clear
+            show_menu
+        fi
+    ;;
+    6)
+        clear
+        echo -e "${green}----------------"
+        echo -e "  添加TCP代理"
+        echo -e "----------------${plain}"
+        run_script tcp_server.sh set
+        if [[ $? == 0 ]]; then
+            restart "是否现在重启"
+            sleep 3
+        fi
+        clear
+        show_menu
+    ;;
+    7)
+        clear
+        echo -e "${green}----------------"
+        echo -e "  禁止通过IP访问"
+        echo -e "----------------${plain}"
+        confirm "是否禁止通过IP访问?" "n"
+        if [[ $? == 0 ]]; then
+            disable_useip
+            if [[ $? == 0 ]]; then
+                restart "是否现在重启"
+                sleep 3
+            fi
+        fi
+        clear
+        show_menu
+    ;;
+    8)
+        clear
+        echo -e "${green}----------------"
+        echo -e "  绑定 inbounds"
+        echo -e "----------------${plain}"
+        run_script http_proxy.sh inbounds
+        if [[ $? == 0 ]]; then
+            restart "是否现在重启"
+            sleep 3
+        else
+            sleep 1
+        fi
+        clear
+        show_menu
+    ;;
     *)
         clear
-        echo -e "${red}请输入正确的数字 [0-4]${plain}"
+        echo -e "${red}请输入正确的数字 [0-8]${plain}"
         show_menu
     ;;
     esac

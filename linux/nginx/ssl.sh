@@ -56,6 +56,7 @@ get_nginx_env() {
         workdir=`readlink -f ${conflink} | sed -e 's/\/conf$//'`
         ssldir=$workdir/ssl
     fi
+    mkdir -p $ssldir
 }
 
 
@@ -93,6 +94,29 @@ install_acme() {
     echo -e "设置自动更新 ..."
     $acmeci --upgrade --auto-upgrade
     echo -e "acme.sh 安装完成"
+}
+
+uninstall_acme() {
+    echo -e "开始卸载 acme.sh"
+    acmeci=$HOME/.acme.sh/acme.sh
+    $acmeci --uninstall
+    rm -rf $HOME/.acme.sh
+    echo -e "acme.sh 卸载完成"
+}
+
+set_default_ca() {
+    _ca=$1
+    if [[ $1 == '' ]]; then
+        list=(letsencrypt buypass zerossl)
+        echo -e "设置默认CA"
+        select item in ${list[@]};
+        do
+            _ca=$item
+            break
+        done
+    fi
+    acmeci=$HOME/.acme.sh/acme.sh
+    $acmeci --set-default-ca --server $_ca
 }
 
 # 申请证书
@@ -293,6 +317,131 @@ cer2jks() {
     echo "$_pass" > ./jks-password.txt
 }
 
+show_menu() {
+    num=$1
+    if [[ $1 == '' ]]; then
+        echo -e "
+  ${green}-- SSL证书管理 --${plain}
+
+  ${green} 0${plain}. 返回
+ ------------------------
+  ${green} 1${plain}. 申请SSL证书
+  ${green} 2${plain}. 安装SSL证书
+  ${green} 3${plain}. 设置默认CA
+  ${green} 4${plain}. CRT转JKS证书
+ ------------------------
+  ${green} 5${plain}. 安装 ACME
+  ${green} 6${plain}. 卸载 ACME
+        "
+        echo && read -p "请输入选择 [0-6]: " num
+        echo
+    fi
+    case "${num}" in
+    0)
+        run_script help.sh
+    ;;
+    1)
+        clear
+        echo -e "${green}----------------"
+        echo -e "  申请SSL证书"
+        echo -e "----------------${plain}"
+        if [[ -f $HOME/.acme.sh/acme.sh ]]; then
+            apply_cert
+        else
+            echo -e "${yellow}请先安装 ACME!${plain}"
+        fi
+        sleep 3
+        read  -n1  -p "按任意键继续" key
+        clear
+        show_menu
+    ;;
+    2)
+        clear
+        echo -e "${green}----------------"
+        echo -e "  安装SSL证书"
+        echo -e "----------------${plain}"
+        if [[ -f $HOME/.acme.sh/acme.sh ]]; then
+            install_cert
+        else
+            echo -e "${yellow}请先安装 ACME!${plain}"
+        fi
+        sleep 3
+        read  -n1  -p "按任意键继续" key
+        clear
+        show_menu
+    ;;
+    3)
+        clear
+        echo -e "${green}----------------"
+        echo -e "  设置默认CA"
+        echo -e "----------------${plain}"
+        if [[ -f $HOME/.acme.sh/acme.sh ]]; then
+            set_default_ca
+        else
+            echo -e "${yellow}请先安装 ACME!${plain}"
+        fi
+        sleep 3
+        read  -n1  -p "按任意键继续" key
+        clear
+        show_menu
+    ;;
+    4)
+        clear
+        echo -e "${green}----------------"
+        echo -e "  CRT转JKS证书"
+        echo -e "----------------${plain}"
+        cer2jks
+        sleep 3
+        read  -n1  -p "按任意键继续" key
+        clear
+        show_menu
+    ;;
+    5)
+        clear
+        echo -e "${green}----------------"
+        echo -e "  安装 ACME"
+        echo -e "----------------${plain}"
+        if [[ -f $HOME/.acme.sh/acme.sh ]]; then
+            echo -e "${yellow}ACME 已经安装!${plain}"
+        else
+            install_acme
+        fi
+        sleep 3
+        read  -n1  -p "按任意键继续" key
+        clear
+        show_menu
+    ;;
+    6)
+        clear
+        echo -e "${green}----------------"
+        echo -e "  卸载 ACME"
+        echo -e "----------------${plain}"
+        if [[ -f $HOME/.acme.sh/acme.sh ]]; then
+            uninstall_acme
+        else
+            echo -e "${yellow}ACME 没有安装!${plain}"
+        fi
+        sleep 3
+        read  -n1  -p "按任意键继续" key
+        clear
+        show_menu
+    ;;
+    *)
+        clear
+        echo -e "${red}请输入正确的数字 [0-6]${plain}"
+        show_menu
+    ;;
+    esac
+}
+
+run_script() {
+    file=$1
+    if [[ -f $current_dir/$file ]]; then
+        sh $current_dir/$file "${@:2}"
+    else
+        wget -O $current_dir/$file ${urlroot}/main/linux/nginx/$file && chmod +x $current_dir/$file && clear && $current_dir/$file "${@:2}"
+    fi
+}
 
 main() {
     case $1 in
@@ -301,6 +450,20 @@ main() {
             echo -e "${yellow}ACME 已经安装!${plain}"
         else
             install_acme
+        fi
+    ;;
+    acme_uninstall)
+        if [[ -f $HOME/.acme.sh/acme.sh ]]; then
+            uninstall_acme
+        else
+            echo -e "${yellow}ACME 没有安装!${plain}"
+        fi
+    ;;
+    set_default_ca)
+        if [[ -f $HOME/.acme.sh/acme.sh ]]; then
+            echo -e "${yellow}ACME 已经安装!${plain}"
+        else
+            set_default_ca "${@:2}"
         fi
     ;;
     apply_cert)
@@ -321,7 +484,8 @@ main() {
         cer2jks "${@:2}"
     ;;
     * )
-        exit 0
+        clear
+        show_menu
     ;;
     esac
 }
