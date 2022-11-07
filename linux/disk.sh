@@ -54,15 +54,16 @@ get_opt_disks() {
     _type=$1
     get_sys_disk
     _disks=""
-    alldisks=(`fdisk -l | grep -E "(Disk|磁盘) /dev/(s|v)d" | sed 's/：/ /' | awk -F ' ' '{print $2}'`)
+    alldisks=(`fdisk -l | grep -E "(Disk|磁盘) /dev/(s|v)d" | sed -E 's/\:|：//g' | awk -F ' ' '{print $2}'`)
     if [[ $_type == 'expand' ]]; then
-        tmp_disks=(`fdisk -l | grep -E "(Disk|磁盘) /dev/(s|v)d" | sed 's/：/ /' | awk -F ' ' '{print $2}'`)
+        tmp_disks=(`fdisk -l | grep -E "(Disk|磁盘) /dev/(s|v)d" | sed -E 's/\:|：//g' | awk -F ' ' '{print $2}'`)
         return 1
     fi
     for item in ${alldisks[@]};
     do
         if [[ $item != $sys_disk ]]; then
-            is_true=`fdisk -l | grep -E "${item}1"`
+            # is_true=`fdisk -l | grep -E "${item}"`
+            is_true=`df -h | grep -E "^${item}"`
             case $_type in
             mount )
                 # 挂载
@@ -84,7 +85,7 @@ get_opt_disks() {
 
 # 获取系统盘
 get_sys_disk() {
-    sys_disk=`df -h / | grep -E "^/dev" | awk -F ' ' '{print $1}' | sed 's/[1-9]$//'`
+    sys_disk=`df -h /boot | grep -E "^/dev" | awk -F ' ' '{print $1}' | sed 's/[1-9]$//'`
 }
 
 # 选择磁盘分区
@@ -94,7 +95,7 @@ select_disk() {
     get_opt_disks $_type
     _disk=""
     if [[ ${#tmp_disks[@]} == 0 ]]; then
-        echo -e "没有可${_name}的磁盘分区"
+        echo -e "${yellow}没有可${_name}的磁盘分区${plain}"
         return 1
     fi
     select item in ${tmp_disks[@]};
@@ -103,7 +104,7 @@ select_disk() {
         break
     done
     if [[ $_disk == '' ]]; then
-        echo -e "没有选择如何磁盘分区"
+        echo -e "${yellow}没有选择如何磁盘分区${plain}"
         return 1
     fi
 }
@@ -111,9 +112,24 @@ select_disk() {
 # 挂载磁盘
 mount_disk() {
     _disk=$1
-    _point=$2
-    echo -e "${yellow}创建分区-[${_disk}]-${plain}"
-    fdisk -u $_disk <<EOF
+    # _point=$2
+    _volumes=(`fdisk -lu ${_disk} | grep -E "^${_disk}" | awk -F ' ' '{print $1}'`)
+    _volume=${_volumes[0]}
+    is_format="false"
+    if [[ ${#_volumes[@]} == 0 ]]; then
+        # 需要分区/格式化
+        is_format="true"
+    else
+        confirm "检测到磁盘中有数据，是否要格式化磁盘-[$_disk]-吗?" "n"
+        if [[ $? == 0 ]]; then
+            is_format="true"
+        fi
+    fi
+
+    
+    if [[ $is_format == 'true' ]]; then
+        echo -e "${yellow}创建分区-[${_disk}]-${plain}"
+        fdisk -u $_disk <<EOF
 n
 p
 1
@@ -121,14 +137,32 @@ p
 
 wq
 EOF
-    sleep 1
-    _partition=`fdisk -lu $_disk | grep -E "^$_disk" | awk -F ' ' '{print $1}'`
-    echo -e "${yellow}格式化分区-[${_partition}]-${plain}"
-    mkfs -t ext4 $_partition
-    sleep 1
-    echo -e "${yellow}挂载磁盘分区-[${_partition}]-到-[$_point]-${plain}"
+        sleep 1
+        _volumes=(`fdisk -lu ${_disk} | grep -E "^${_disk}" | awk -F ' ' '{print $1}'`)
+        _volume=${_volumes[0]}
+        echo -e "${yellow}格式化分区-[${_volume}]-${plain}"
+        mkfs -t ext4 $_volume
+        sleep 1
+    fi
+
+    while read -p "输入挂载点: " _path
+    do
+        if [[ $_path == '' ]]; then
+            echo -e "${red}挂载点不能为空${plain}"
+            continue
+        fi
+        if [[ ! $_path =~ ^(\/[0-9a-zA-Z]+)+$ ]]; then
+            echo -e "${red}挂载点不是路径格式${plain}"
+            continue
+        fi
+        echo -e "${yellow}挂载点: ${_path}${plain}"
+        break
+    done
+
+    echo -e "${yellow}挂载磁盘分区-[${_volume}]-到-[$_path]-${plain}"
     cp /etc/fstab /etc/fstab.bak
-    echo `blkid $_partition | awk '{print $2}' | sed 's/\"//g'` $_point ext4 defaults 0 0 >> /etc/fstab
+    echo `blkid $_volume | awk '{print $2}' | sed 's/\"//g'` $_path ext4 defaults 0 0 >> /etc/fstab
+    mkdir -p $_path
     mount -a
     echo -e "${green}挂载磁盘分区-[完成]-${plain}"
     df -Th
@@ -137,10 +171,14 @@ EOF
 # 卸载磁盘分区
 unmount_disk() {
     _disk=$1
-    _partition=`df -h | grep "$_disk" | awk -F ' ' '{print $1}'`
-    confirm "确定要卸载分区-[$_partition]-吗?" "n"
+    _volume=`df -h | grep "$_disk" | awk -F ' ' '{print $1}'`
+    confirm "确定要卸载磁盘分区-[$_volume]-吗?" "n"
     if [[ $? == 0 ]]; then
-        unmount $_partition
+        _path=`df -h | grep "$_disk" | awk -F ' ' '{print $6}'`
+        sed -i "/$(echo $_path | sed -E 's/\//\\\//') /d" /etc/fstab
+        umount $_path
+        echo -e "${green}卸载磁盘分区-[完成]-${plain}"
+        df -Th
     else
         return 1
     fi
@@ -203,25 +241,13 @@ show_menu() {
         echo -e "----------------${plain}"
         select_disk mount "挂载"
         if [[ $? == 0 ]]; then
-            echo -e "selected -- $_disk"
-            while read -p "输入挂载点: " _point
-            do
-                if [[ $_point == '' ]]; then
-                    echo -e "${red}挂载点不能为空${plain}"
-                    continue
-                fi
-                if [[ ! $_point =~ ^(\/[a-zA-Z]+)+$ ]]; then
-                    echo -e "${red}挂载点不是路径格式${plain}"
-                    continue
-                fi
-                echo -e "${yellow}挂载点: ${_point}${plain}"
-                break
-            done
             confirm "确定要挂载磁盘-[$_disk]-吗?" "n"
             if [[ $? == 0 ]]; then
-                mount_disk $_disk $_point
+                mount_disk $_disk
                 read  -n1  -p "按任意键继续" key
             fi
+        else
+            read  -n1  -p "按任意键继续" key
         fi
         clear
         show_menu
@@ -237,6 +263,8 @@ show_menu() {
             if [[ $? == 0 ]]; then
                 read  -n1  -p "按任意键继续" key
             fi
+        else
+            read  -n1  -p "按任意键继续" key
         fi
         clear
         show_menu
