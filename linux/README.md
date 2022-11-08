@@ -1,166 +1,125 @@
 # Linux 服务器安装
 
-## 前期准备
+## 初始化
 
-`Redhat / CentOS`
-```bash
-yum update -y
-yum install -y curl wget net-tools
-```
+- 新服务器先执行以下命令
+  ```bash
+  yum install -y curl wget 2> /dev/null || apt install -y curl wget
+  ```
 
-`Debian / Ubuntu`
-```bash
-apt update -y
-apt install -y curl wget net-tools bc
-```
+## 运维助手
 
-## 安装工具箱
+- 安装运维助手
+  ```bash
+  mkdir -p $HOME/.scripts \
+  && wget -O $HOME/.scripts/help.sh https://raw.githubusercontent.com/kenote/install/main/linux/help.sh \
+  && chmod +x $HOME/.scripts/help.sh \
+  && clear && $HOME/.scripts/help.sh
 
-海外
-```bash
-wget -O start.sh https://raw.githubusercontent.com/kenote/install/main/linux/start.sh && chmod +x start.sh && clear && ./start.sh
-```
-国内
-```bash
-wget -O start.sh https://gitee.com/kenote/install/raw/main/linux/start.sh && chmod +x start.sh && clear && ./start.sh
-```
+  # 中国大陆
+  mkdir -p $HOME/.scripts \
+  && wget -O $HOME/.scripts/help.sh https://gitee.com/kenote/install/raw/main/linux/help.sh \
+  && chmod +x $HOME/.scripts/help.sh \
+  && clear && $HOME/.scripts/help.sh
+  ```
 
-## 单独安装
+- 运行运维助手
+  ```bash
+  $HOME/.scripts/help.sh
+  ```
 
-### 最新版 Git
+## 单独使用模块
 
-海外
-```bash
-curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-git.sh | bash
-```
+- ### SWAP 管理
+  -- 安装 --
+  ```bash
+  mkdir -p $HOME/.scripts \
+  && wget -O $HOME/.scripts/swap.sh https://raw.githubusercontent.com/kenote/install/main/linux/swap.sh \
+  && chmod +x $HOME/.scripts/swap.sh \
+  && clear && $HOME/.scripts/swap.sh
 
-国内
-```bash
-curl -o- https://gitee.com/kenote/install/raw/main/linux/install-git.sh | bash
-```
+  # 中国大陆
+  mkdir -p $HOME/.scripts \
+  && wget -O $HOME/.scripts/swap.sh https://gitee.com/kenote/install/raw/main/linux/swap.sh \
+  && chmod +x $HOME/.scripts/swap.sh \
+  && clear && $HOME/.scripts/swap.sh
+  ```
+  -- 运行 --
+  ```bash
+  $HOME/.scripts/swap.sh
+  ```
 
-### Htop
+- ### 磁盘分区管理
+  -- 安装 --
+  ```bash
+  mkdir -p $HOME/.scripts \
+  && wget -O $HOME/.scripts/disk.sh https://raw.githubusercontent.com/kenote/install/main/linux/disk.sh \
+  && chmod +x $HOME/.scripts/disk.sh \
+  && clear && $HOME/.scripts/disk.sh
 
-海外
-```bash
-curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-htop.sh | bash
-```
+  # 中国大陆
+  mkdir -p $HOME/.scripts \
+  && wget -O $HOME/.scripts/disk.sh https://gitee.com/kenote/install/raw/main/linux/disk.sh \
+  && chmod +x $HOME/.scripts/disk.sh \
+  && clear && $HOME/.scripts/disk.sh
+  ```
+  -- 运行 --
+  ```bash
+  $HOME/.scripts/disk.sh
+  ```
 
-国内
-```bash
-curl -o- https://gitee.com/kenote/install/raw/main/linux/install-htop.sh | bash
-```
+- ### Firewall 防火墙
+  -- 安装 --
+  ```bash
+  mkdir -p $HOME/.scripts \
+  && wget -O $HOME/.scripts/firewall.sh https://raw.githubusercontent.com/kenote/install/main/linux/firewall.sh \
+  && chmod +x $HOME/.scripts/firewall.sh \
+  && clear && $HOME/.scripts/firewall.sh
 
-### Nginx
+  # 中国大陆
+  mkdir -p $HOME/.scripts \
+  && wget -O $HOME/.scripts/firewall.sh https://gitee.com/kenote/install/raw/main/linux/firewall.sh \
+  && chmod +x $HOME/.scripts/firewall.sh \
+  && clear && $HOME/.scripts/firewall.sh
+  ```
+  -- 运行 --
+  ```bash
+  $HOME/.scripts/firewall.sh
+  ```
 
-海外
-```bash
-# 安装 nginx
-curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh | bash
+- ### Nginx 管理助手
+  -- 安装 --
+  ```bash
+  mkdir -p $HOME/.scripts/nginx \
+  && wget -O $HOME/.scripts/nginx/help.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx/help.sh \
+  && chmod +x $HOME/.scripts/nginx/help.sh \
+  && clear && $HOME/.scripts/nginx/help.sh
 
-# 升级 openssl 1.1.1
-bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh) openssl
+  # 中国大陆
+  mkdir -p $HOME/.scripts/nginx \
+  && wget -O $HOME/.scripts/nginx/help.sh https://gitee.com/kenote/install/raw/main/linux/nginx/help.sh \
+  && chmod +x $HOME/.scripts/nginx/help.sh \
+  && clear && $HOME/.scripts/nginx/help.sh
+  ```
+  -- 运行 --
+  ```bash
+  $HOME/.scripts/nginx/help.sh
+  ```
 
-# 更新 nginx 替换系统原有的，以支持 TLS1.3
-bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh) update
+## 单独安装模块
 
-# 移除 nginx
-bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh) remove
+- ### 安装最新版 Git
+  ```bash
+  curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-git.sh | bash
 
-# 安装 acme.sh
-bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-nginx.sh) acmesh
+  # 中国大陆
+  curl -o- https://gitee.com/kenote/install/raw/main/linux/install-git.sh | bash
+  ```
 
-# 创建 Nginx 站点
-wget -O nginx.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh create
+- ### 安装最新版 Htop
+  ```bash
+  curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-htop.sh | bash
 
-# 查看 Nginx 信息
-wget -O nginx.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh info
-
-# 更改 Nginx 配置文件路径
-wget -O nginx.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh workdir
-
-# 禁止使用 IP 访问
-wget -O nginx.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh not_useip
-
-# 开启使用 IP 访问
-wget -O nginx.sh https://raw.githubusercontent.com/kenote/install/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh yes_useip
-```
-
-国内
-```bash
-# 安装 nginx
-curl -o- https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh | bash
-
-# 升级 openssl 1.1.1
-bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh) openssl
-
-# 更新 nginx 替换系统原有的，以支持 TLS1.3
-bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh) update
-
-# 移除 nginx
-bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh) remove
-
-# 安装 acme.sh
-bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-nginx.sh) acmesh
-
-# 创建 Nginx 站点
-wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh create
-
-# 查看 Nginx 信息
-wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh info
-
-# 更改 Nginx 配置文件路径
-wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh workdir
-
-# 禁止使用 IP 访问
-wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh not_useip
-
-# 开启使用 IP 访问
-wget -O nginx.sh https://gitee.com/kenote/install/raw/main/linux/nginx.sh && chmod +x nginx.sh && clear && ./nginx.sh yes_useip
-```
-
-### SWAP
-
-海外
-```bash
-# 创建 SWAP
-wget -O swap.sh https://raw.githubusercontent.com/kenote/install/main/linux/swap.sh && chmod +x swap.sh && clear && ./swap.sh create
-
-# 移除 SWAP
-wget -O swap.sh https://raw.githubusercontent.com/kenote/install/main/linux/swap.sh && chmod +x swap.sh && clear && ./swap.sh remove
-```
-
-国内
-```bash
-# 创建 SWAP
-wget -O swap.sh https://gitee.com/kenote/install/raw/main/linux/swap.sh && chmod +x swap.sh && clear && ./swap.sh create
-
-# 移除 SWAP
-wget -O swap.sh https://gitee.com/kenote/install/raw/main/linux/swap.sh && chmod +x swap.sh && clear && ./swap.sh remove
-```
-
-### Docker
-
-海外
-```bash
-# 安装 docker 和 docker-componse
-curl -o- https://raw.githubusercontent.com/kenote/install/main/linux/install-docker.sh | bash
-
-# 删除 docker 和 docker-componse
-bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-docker.sh) remove
-
-# 优化配置
-bash <(curl -s https://raw.githubusercontent.com/kenote/install/main/linux/install-docker.sh) daemon
-```
-
-国内
-```bash
-# 安装 docker 和 docker-componse
-curl -o- https://gitee.com/kenote/install/raw/main/linux/install-docker.sh | bash
-
-# 删除 docker 和 docker-componse
-bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-docker.sh) remove
-
-# 优化配置
-bash <(curl -s https://gitee.com/kenote/install/raw/main/linux/install-docker.sh) daemon
-```
+  # 中国大陆
+  curl -o- https://gitee.com/kenote/install/raw/main/linux/install-htop.sh | bash
+  ```

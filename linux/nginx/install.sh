@@ -118,6 +118,40 @@ update_nginx(){
     systemctl restart nginx
 }
 
+install_openssl() {
+    echo -e "安装 OpenSSL ${openssl_version}"
+    if [[ $release == 'centos' ]]; then
+        yum install -y gcc-c++ pcre pcre-devel zlib zlib-devel
+    fi
+    if !(command -v perl); then
+        # 安装 Perl 5
+        cd $HOME
+        wget https://www.cpan.org/src/5.0/perl-5.36.0.tar.gz
+        tar -xzf perl-5.36.0.tar.gz
+        cd perl-5.36.0
+        ./Configure -des -Dprefix=$HOME/localperl
+        make
+        make test
+        make install
+    fi
+    # 安装 OpenSSL
+    cd $HOME
+    wget --no-check-certificate https://www.openssl.org/source/${openssl_version}.tar.gz
+    tar xvf ${openssl_version}.tar.gz
+    cd ${openssl_version}
+    ./config shared --openssldir=/usr/local/openssl --prefix=/usr/local/openssl
+    make
+    make install
+    # 移除老版本
+    mv /usr/bin/openssl /tmp/
+    ln -s /usr/local/openssl/bin/openssl /usr/bin/openssl
+    # 配置lib库
+    echo "/usr/local/openssl/lib/" >> /etc/ld.so.conf
+    ldconfig
+    # 显示安装版本
+    openssl version
+}
+
 main() {
     case $1 in
     remove)
@@ -129,6 +163,9 @@ main() {
         else
             echo -e "${yellow}请先安装 Nginx! ${plain}"
         fi
+    ;;
+    openssl)
+        install_openssl
     ;;
     * )
         if (is_command nginx); then
