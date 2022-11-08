@@ -256,6 +256,7 @@ show_menu() {
   ${green}10${plain}. SWAP 管理
   ${green}11${plain}. 磁盘分区管理
   ${green}12${plain}. Nginx 管理助手
+  ${green}13${plain}. Docker 助手
     "
   
     echo && read -p "请输入选择 [0-14]: " num
@@ -338,6 +339,10 @@ show_menu() {
         12)
             clear
             run_script nginx/help.sh
+        ;;
+        13)
+            clear
+            run_script docker/help.sh
         ;;
         *  )
             echo -e "${red}请输入正确的数字 [0-14]${plain}"

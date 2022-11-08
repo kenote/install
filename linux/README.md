@@ -106,6 +106,25 @@
   $HOME/.scripts/nginx/help.sh
   ```
 
+- ### Docker 管理助手
+  -- 安装 --
+  ```bash
+  mkdir -p $HOME/.scripts/docker \
+  && wget -O $HOME/.scripts/docker/help.sh https://raw.githubusercontent.com/kenote/install/main/linux/docker/help.sh \
+  && chmod +x $HOME/.scripts/docker/help.sh \
+  && clear && $HOME/.scripts/docker/help.sh
+
+  # 中国大陆
+  mkdir -p $HOME/.scripts/docker \
+  && wget -O $HOME/.scripts/docker/help.sh https://gitee.com/kenote/install/raw/main/linux/docker/help.sh \
+  && chmod +x $HOME/.scripts/docker/help.sh \
+  && clear && $HOME/.scripts/docker/help.sh
+  ```
+  -- 运行 --
+  ```bash
+  $HOME/.scripts/docker/help.sh
+  ```
+
 ## 单独安装模块
 
 - ### 安装最新版 Git
