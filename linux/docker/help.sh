@@ -171,9 +171,24 @@ remove_docker() {
     fi
 }
 
-# deploy_portainer() {
-
-# }
+set_workdir() {
+    while read -p "设置工作目录: " _workdir
+    do
+        if [[ $_workdir == '' ]]; then
+            echo -e "${red}工作目录不能为空！${plain}"
+            continue
+        fi
+        dir_flag==`echo "$_workdir" | gawk '/^\/(\w+\/?)+$/{print $0}'`
+        if [[ ! -n "${dir_flag}" ]]; then
+            echo -e "${red}工作目录格式错误！${plain}"
+            continue
+        fi
+        break
+    done
+    echo -e "${yellow}设置工作目录: $_workdir${plain}"
+    echo -e "DOCKER_WORKDIR=$_workdir" >> $HOME/.docker_profile
+    mkdir -p $_workdir
+}
 
 show_menu() {
     get_docker_status
@@ -189,8 +204,11 @@ show_menu() {
  ------------------------
   ${green} 5${plain}. 安装 Docker
   ${green} 6${plain}. 卸载 Docker
+  ${green} 7${plain}. 设置工作目录
+ ------------------------
+  ${green} 8${plain}. 部署 Portainer
   "
-    echo && read -p "请输入选择 [0-10]: " num
+    echo && read -p "请输入选择 [0-8]: " num
     echo
     case "${num}" in
     0  )
@@ -243,6 +261,7 @@ show_menu() {
         sleep 5
         set_daemon
         read  -n1  -p "按任意键继续" key
+        clear
         read_docker_env
         show_menu
     ;;
@@ -250,11 +269,28 @@ show_menu() {
         clear
         remove_docker
         read  -n1  -p "按任意键继续" key
+        clear
+        read_docker_env
+        show_menu
+    ;;
+    7  )
+        clear
+        set_workdir
+        read  -n1  -p "按任意键继续" key
+        clear
+        read_docker_env
+        show_menu
+    ;;
+    8  )
+        clear
+        run_script portainer.sh
+        read  -n1  -p "按任意键继续" key
+        clear
         read_docker_env
         show_menu
     ;;
     *  )
-        echo -e "${red}请输入正确的数字 [0-10]${plain}"
+        echo -e "${red}请输入正确的数字 [0-8]${plain}"
     ;;
     esac
 }
@@ -272,6 +308,9 @@ run_script() {
 
 main() {
     case $1 in
+    workdir)
+        set_workdir
+    ;;
     * )
         clear
         show_menu
