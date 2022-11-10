@@ -200,9 +200,9 @@ get_server_env() {
     done
     # 拉取 frpc.ini
     wget -O frpc.ini ${urlroot}/main/linux/docker/frpc.ini
-    sed -i "s/$(cat frps.ini | grep -E "^server_addr")/server_addr = $_host/" frpc.ini
-    sed -i "s/$(cat frps.ini | grep -E "^server_port")/server_port = $_port/" frpc.ini
-    sed -i "s/$(cat frps.ini | grep -E "^token")/token = $_token/" frpc.ini
+    sed -i "s/$(cat frpc.ini | grep -E "^server_addr")/server_addr = $_host/" frpc.ini
+    sed -i "s/$(cat frpc.ini | grep -E "^server_port")/server_port = $_port/" frpc.ini
+    sed -i "s/$(cat frpc.ini | grep -E "^token")/token = $_token/" frpc.ini
     
 }
 
