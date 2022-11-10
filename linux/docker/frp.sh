@@ -167,7 +167,7 @@ server_port = $bind_port
 token = $token
     "
     echo
-    echo -e "bash <(curl -Ls ${urlroot}/main/linux/docker/frpc.ini) get_server --host $network_ip --port $bind_port --token \"$token\""
+    echo -e "bash <(curl -Ls ${urlroot}/main/linux/docker/frp.sh) get_server --host $network_ip --port $bind_port --token \"$token\""
     echo
 }
 
@@ -200,9 +200,10 @@ get_server_env() {
     done
     # 拉取 frpc.ini
     wget -O frpc.ini ${urlroot}/main/linux/docker/frpc.ini
-    sed -i "s/$(cat $workdir/${project_name}/frps.ini | grep -E "^server_addr")/server_addr = $_host/" frpc.ini
-    sed -i "s/$(cat $workdir/${project_name}/frps.ini | grep -E "^server_port")/server_port = $_port/" frpc.ini
-    sed -i "s/$(cat $workdir/${project_name}/frps.ini | grep -E "^token")/token = $_token/" frpc.ini
+    sed -i "s/$(cat frps.ini | grep -E "^server_addr")/server_addr = $_host/" frpc.ini
+    sed -i "s/$(cat frps.ini | grep -E "^server_port")/server_port = $_port/" frpc.ini
+    sed -i "s/$(cat frps.ini | grep -E "^token")/token = $_token/" frpc.ini
+    
 }
 
 deploy_client() {
