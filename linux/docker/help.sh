@@ -207,8 +207,9 @@ show_menu() {
   ${green} 7${plain}. 设置工作目录
  ------------------------
   ${green} 8${plain}. 部署 Portainer
+  ${green} 9${plain}. 部署 FRP
   "
-    echo && read -p "请输入选择 [0-8]: " num
+    echo && read -p "请输入选择 [0-9]: " num
     echo
     case "${num}" in
     0  )
@@ -289,8 +290,16 @@ show_menu() {
         read_docker_env
         show_menu
     ;;
+    9  )
+        clear
+        run_script frp.sh
+        read  -n1  -p "按任意键继续" key
+        clear
+        read_docker_env
+        show_menu
+    ;;
     *  )
-        echo -e "${red}请输入正确的数字 [0-8]${plain}"
+        echo -e "${red}请输入正确的数字 [0-9]${plain}"
     ;;
     esac
 }
