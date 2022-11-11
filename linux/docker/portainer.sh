@@ -86,7 +86,7 @@ deploy() {
     mkdir -p $workdir/${project_name}
     cd $workdir/${project_name}
     # 拉取 docker-compose.yml
-    wget -O $workdir/${project_name}/docker-compose.yml ${urlroot}/main/linux/docker/portainer.yaml
+    wget -O $workdir/${project_name}/docker-compose.yml ${urlroot}/main/linux/docker/portainer/portainer.yaml
     # 设置变量
     while read -p "HTTP端口[默认: 8000]: " http_port
     do
@@ -153,7 +153,7 @@ deploy_agent() {
     mkdir -p $workdir/${project_name}
     cd $workdir/${project_name}
     # 拉取 docker-compose.yml
-    wget -O $workdir/${project_name}/docker-compose.yml ${urlroot}/main/linux/docker/portainer_agent.yaml
+    wget -O $workdir/${project_name}/docker-compose.yml ${urlroot}/main/linux/docker/portainer/portainer_agent.yaml
     # 设置变量
     while read -p "HTTP端口[默认: 8000]: " http_port
     do
@@ -176,6 +176,36 @@ HTTP_PORT=$http_port
     echo -e "外部 -- ${network_ip}:${https_port}"
 }
 
+update() {
+    project_name="portainer"
+    if [[ $workdir == '' ]]; then
+        run_script help.sh workdir
+    fi
+    echo
+    echo -e "${green}----------------"
+    echo -e "  升级 Portainer 版本"
+    echo -e "----------------${plain}"
+    echo
+    confirm "确定要升级 Portainer 吗?" "n"
+    if [[ $? != 0 ]]; then
+        return 1
+    fi
+    if [[ -f $workdir/${project_name}/docker-compose.yml ]]; then
+        cd $workdir/${project_name}
+        docker-compose down -v
+        docker rmi portainer/portainer-ce
+        sleep 3
+        docker-compose up -d
+        echo -e "${green}Portainer 更新完毕${plain}"
+    else
+        docker stop portainer
+        docker rm portainer
+        docker rmi portainer/portainer-ce
+        sleep 3
+        deploy
+    fi
+}
+
 run_script() {
     file=$1
     filepath=`echo "$current_dir/$file" | sed 's/docker\/..\///'`
@@ -195,6 +225,7 @@ show_menu() {
  ------------------------
   ${green} 1${plain}. 部署 Portainer
   ${green} 2${plain}. 部署 Portainer Agent
+  ${green} 3${plain}. 升级 Portainer
   "
     echo && read -p "请输入选择 [0-2]: " num
     echo
@@ -212,6 +243,13 @@ show_menu() {
     2  )
         clear
         deploy_agent
+        read  -n1  -p "按任意键继续" key
+        clear
+        run_script help.sh
+    ;;
+    3  )
+        clear
+        update
         read  -n1  -p "按任意键继续" key
         clear
         run_script help.sh

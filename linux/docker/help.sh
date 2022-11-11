@@ -207,10 +207,11 @@ show_menu() {
   ${green} 7${plain}. 设置工作目录
  ------------------------
   ${green} 8${plain}. 部署 Portainer
-  ${green} 9${plain}. 部署 FRP
+  ${green} 9${plain}. 部署 FRP 内网穿透
   "
     echo && read -p "请输入选择 [0-9]: " num
     echo
+    
     case "${num}" in
     0  )
         exit 0
