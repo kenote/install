@@ -38,7 +38,7 @@ install_docker() {
     # 安装 Docker
     if !(is_command docker); then
         echo -e "正在安装 Docker ..."
-        if (is_oversea); thrn
+        if (is_oversea); then
             wget -qO- get.docker.com | bash
         else
             curl -sSL https://get.daocloud.io/docker | sh
