@@ -1,0 +1,13 @@
+version: "3"
+
+services:
+  sss:
+    image: cppla/serverstatus:latest
+    container_name: sss
+    restart: unless-stopped
+    volumes:
+      - ./config.json:/ServerStatus/server/config.json 
+      - ./json:/usr/share/nginx/html/json
+    ports:
+      - ${BIND_PORT:-35601}:35601
+      - ${HTTP_PORT:-8081}:80
