@@ -92,6 +92,8 @@ read_dashboard_env() {
 
 set_dashboard_env() {
     _path=$1
+    HTTP_PORT="8081"
+    BIND_PORT="35601"
     if [[ $_path == '' ]]; then
         while read -p "安装路径[默认 ${CURRENT_DIR}/sss]: " _path
         do
@@ -104,15 +106,22 @@ set_dashboard_env() {
             fi
             break
         done
+    else
+        CONTAINER_ID=`docker ps -q -f "ancestor=cppla/serverstatus"`
+        HTTP_PORT=`docker inspect ${CONTAINER_ID} | jq -r ".[0].NetworkSettings.Ports[\"80/tcp\"][0].HostPort"`
+        BIND_PORT=`docker inspect ${CONTAINER_ID} | jq -r ".[0].NetworkSettings.Ports[\"35601/tcp\"][0].HostPort"`
     fi
-    while read -p "面板端口[默认 8081]:" _http_port
+    while read -p "面板端口[默认 ${HTTP_PORT}]:" _http_port
     do
         if [[ $_http_port = '' ]]; then
-            _http_port=8081
+            _http_port=${HTTP_PORT}
         fi
         if [[ ! $_http_port =~ ^[1-9]{1}[0-9]{1,4}$ ]]; then
             echo -e "${red}端口号格式错误！${plain}"
             continue
+        fi
+        if [[ $_http_port == ${HTTP_PORT} ]]; then
+            break
         fi
         if (lsof -i:$_http_port  &> /dev/null); then
             echo -e "${red}端口-[${_http_port}]-被占用，请更换${plain}"
@@ -120,14 +129,17 @@ set_dashboard_env() {
         fi
         break
     done
-    while read -p "对接端口[默认 35601]:" _bind_port
+    while read -p "对接端口[默认 ${BIND_PORT}]:" _bind_port
     do
         if [[ $_bind_port = '' ]]; then
-            _bind_port=35601
+            _bind_port=${BIND_PORT}
         fi
         if [[ ! $_bind_port =~ ^[1-9]{1}[0-9]{1,4}$ ]]; then
             echo -e "${red}端口号格式错误！${plain}"
             continue
+        fi
+        if [[ $_bind_port == ${BIND_PORT} ]]; then
+            break
         fi
         if (lsof -i:$_bind_port  &> /dev/null); then
             echo -e "${red}端口-[${_bind_port}]-被占用，请更换${plain}"
@@ -154,15 +166,17 @@ set_dashboard() {
 
     set_dashboard_env ${WORK_DIR}
     SSS_HTTP_PORT=$_http_port
-    SSS_BIND_PORT-$_bind_port
+    SSS_BIND_PORT=$_bind_port
 
     # 创建环境变量
+    echo
     echo -e "正在配置面板参数..."
     echo -e "HTTP_PORT=${SSS_HTTP_PORT}\nBIND_PORT=${SSS_BIND_PORT}" > .env
 
     # 启动面板
     echo -e "正在启动监控面板..."
     docker-compose up -d
+    echo
 }
 
 install_dashboard() {
