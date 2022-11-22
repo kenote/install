@@ -104,6 +104,7 @@ modify_agent_config() {
     if [[ $_token != '' ]]; then
         keycode=`echo "${_token}" | base64 --decode`
         get_param_val "$keycode" host
+        get_param_val "$keycode" port
         get_param_val "$keycode" user
         get_param_val "$keycode" pass
     fi
@@ -128,6 +129,7 @@ modify_agent_config() {
             done
             keycode=`echo "${_token}" | base64 --decode`
             get_param_val "$keycode" host
+            get_param_val "$keycode" port
             get_param_val "$keycode" user
             get_param_val "$keycode" pass
         ;;
