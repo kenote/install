@@ -81,7 +81,7 @@ modify_agent_config() {
             shift
         ;;
         --user)
-            _user==$2
+            _user=$2
             shift
         ;;
         --pass)
@@ -145,7 +145,7 @@ modify_agent_config() {
             while read -p "伺服器端口[${_port}]: " _port
             do
                 if [[ $_port != '' ]]; then
-                    if [[ ! $_http_port =~ ^[1-9]{1}[0-9]{1,4}$ ]]; then
+                    if [[ ! $_port =~ ^[1-9]{1}[0-9]{1,4}$ ]]; then
                         echo -e "${red}端口号格式错误！${plain}"
                         continue
                     fi
