@@ -51,7 +51,7 @@ read_agent_env() {
     else
         echo -e "状态 -- ${red}停止${plain}"
     fi
-    echo
+    # echo
 }
 
 get_param_val() {
@@ -59,13 +59,23 @@ get_param_val() {
 }
 
 modify_agent_config() {
-
+    s_port=`cat $SSS_AGENT_PATH/client-linux.py | grep -E "^PORT" | sed -E 's/\s//g' | sed 's/\(.*\)=\(.*\)/\2/g'`
+    _port=""
     _host=""
     _user=""
     _pass=""
     _token=""
     while [ ${#} -gt 0 ]; do
         case "${1}" in
+        --port)
+            _port=$2
+            if [[ $_port != '' ]]; then
+                if [[ ! $_port =~ ^[1-9]{1}[0-9]{1,4}$ ]]; then
+                    _port=$s_port
+                fi
+            fi
+            shift
+        ;;
         --host)
             _host=$2
             shift
@@ -129,6 +139,15 @@ modify_agent_config() {
                     continue
                 fi
                 break
+            done
+            while read -p "伺服器端口[${_port}]: " _port
+            do
+                if [[ $_port != '' ]]; then
+                    if [[ ! $_http_port =~ ^[1-9]{1}[0-9]{1,4}$ ]]; then
+                        echo -e "${red}端口号格式错误！${plain}"
+                        continue
+                    fi
+                fi
                 break
             done
             while read -p "用户名: " _user
@@ -138,7 +157,6 @@ modify_agent_config() {
                     continue
                 fi
                 break
-                break
             done
             while read -p "密码: " _pass
             do
@@ -146,7 +164,6 @@ modify_agent_config() {
                     echo -e "${red}密码不能为空！${plain}"
                     continue
                 fi
-                break
                 break
             done
         ;;
@@ -157,13 +174,19 @@ modify_agent_config() {
         
     fi
 
+    # 修改服务端端口
+    if [[ $_port == '' ]]; then
+        _port=$s_port
+    fi
+    sed -i "s/$(cat $SSS_AGENT_PATH/client-linux.py | grep -E "^PORT")/PORT = ${_port}/" $SSS_AGENT_PATH/client-linux.py
+
     # 下载 service 文件
     wget -O $SSS_AGENT_SERVICE ${REPOSITORY_RAW_URL}/agent.service >/dev/null 2>&1
     
     SSS_AGENT_EXEC=`echo "$(command -v python3 2> /dev/null || command -v python) ${SSS_AGENT_PATH}/client-linux.py SERVER=${_host} USER=${_user} PASSWORD=${_pass}"`
 
-    sed -i "s/$(cat ${SSS_AGENT_SERVICE} | grep -E "^WorkingDirectory=")/WorkingDirectory=${SSS_AGENT_PATH}/" ${SSS_AGENT_SERVICE}
-    sed -i "s/$(cat ${SSS_AGENT_SERVICE} | grep -E "^ExecStart=")/ExecStart=${SSS_AGENT_EXEC}/" ${SSS_AGENT_SERVICE}
+    sed -i "s/$(cat ${SSS_AGENT_SERVICE} | grep -E "^WorkingDirectory=" | sed -E 's/\//\\\//g')/WorkingDirectory=$(echo ${SSS_AGENT_PATH} | sed -E 's/\//\\\//g')/" ${SSS_AGENT_SERVICE}
+    sed -i "s/$(cat ${SSS_AGENT_SERVICE} | grep -E "^ExecStart=" | sed -E 's/\//\\\//g')/ExecStart=$(echo ${SSS_AGENT_EXEC} | sed -E 's/\//\\\//g')/" ${SSS_AGENT_SERVICE}
 
     echo -e "${green}客户端配置成功，请等待重启生效${plain}"
 

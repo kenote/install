@@ -80,7 +80,7 @@ read_dashboard_env() {
         echo -e "${yellow}Server Status 面板未安装${plain}"
         return 1
     fi
-    status=`docker inspect ${CONTAINER_ID} | jq -r ".[].State.Status"`
+    status=`docker inspect ${CONTAINER_ID} | jq -r ".[0].State.Status"`
     echo
     if [[ $status == 'running' ]]; then
         echo -e "状态 -- ${green}运行中${plain}"
@@ -148,7 +148,7 @@ set_dashboard() {
     echo -e "----------------${plain}"
 
     # CONTAINER_ID=`docker ps -q -f "ancestor=cppla/serverstatus"`
-    WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
+    WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[0].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
 
     cd ${WORK_DIR}
 
@@ -204,7 +204,7 @@ remove_dashboard() {
     echo -e "----------------${plain}"
     if (docker ps -q -f "ancestor=cppla/serverstatus"  &> /dev/null); then
         CONTAINER_ID=`docker ps -q -f "ancestor=cppla/serverstatus"`
-        WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
+        WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[0].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
         cd ${WORK_DIR}
         docker-compose down -v
         rm -rf ${WORK_DIR}
@@ -253,7 +253,7 @@ add_agent() {
     _user=`uuidgen | tr -dc '[:xdigit:]'`
     _pass=`strings /dev/urandom |tr -dc A-Za-z0-9 | head -c16; echo`
 
-    WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
+    WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[0].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
     cd ${WORK_DIR}
     servers=(`cat config.json | jq '.servers[].name'`)
 
@@ -281,7 +281,7 @@ list_agent() {
     echo -e "  监控节点列表"
     echo -e "----------------------------------------------------------------${plain}"
 
-    WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
+    WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[0].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
     cd ${WORK_DIR}
     servers=(`cat config.json | jq '.servers[].name'`)
     _id=0
@@ -356,7 +356,7 @@ list_agent() {
 edit_agent() {
     _id=$1
     CONTAINER_ID=`docker ps -q -f "ancestor=cppla/serverstatus"`
-    WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
+    WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[0].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
     cd ${WORK_DIR}
 
     old_name=`cat config.json | jq ".servers[${_id}].name" | sed -E 's/\"//g'`
@@ -404,7 +404,7 @@ edit_agent() {
 remove_agent() {
     _id=$1
     CONTAINER_ID=`docker ps -q -f "ancestor=cppla/serverstatus"`
-    WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
+    WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[0].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
     cd ${WORK_DIR}
 
     echo
@@ -418,7 +418,8 @@ remove_agent() {
 look_agent() {
     _id=$1
     CONTAINER_ID=`docker ps -q -f "ancestor=cppla/serverstatus"`
-    WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
+    WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[0].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
+    BIND_PORT=`docker inspect ${CONTAINER_ID} | jq -r ".[0].NetworkSettings.Ports[\"35601/tcp\"][0].HostPort"`
     cd ${WORK_DIR}
 
     clear
@@ -429,7 +430,7 @@ look_agent() {
     _host=`wget -qO- ip.p3terx.com | sed -n '1p'`
     _user=`cat config.json | jq ".servers[${_id}].username" | sed -E 's/\"//g'`
     _pass=`cat config.json | jq ".servers[${_id}].password" | sed -E 's/\"//g'`
-    _param="--host $_host --user $_user --pass $_pass"
+    _param="--host $_host --port ${BIND_PORT} --user $_user --pass $_pass"
 
     list=(使用Token 传统方式)
     select item in ${list[@]};
@@ -460,7 +461,7 @@ show_menu() {
     num=$1
     if [[ $1 == '' ]]; then
         echo -e "
-  ${green}Server Status监控管理 -- 监控端${plain}
+  ${green}Server Status监控管理 -- 面板${plain}
 
   ${green} 0${plain}. 退出脚本
  ------------------------
@@ -505,7 +506,7 @@ show_menu() {
         fi
         read_dashboard_env
         # CONTAINER_ID=`docker ps -q -f "ancestor=cppla/serverstatus"`
-        WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
+        WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[0].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
         cd ${WORK_DIR}
         case "${num}" in
         2)
