@@ -66,21 +66,24 @@ modify_agent_config() {
     _token=""
     while [ ${#} -gt 0 ]; do
         case "${1}" in
-        --host_flag)
-
+        --host)
+            _host=$2
+            shift
         ;;
         --user)
-
+            _user==$2
+            shift
         ;;
         --pass)
-
+            _pass=$2
+            shift
         ;;
         --token)
             _token=$2
             shift
         ;;
         *)
-            _err "Unknown parameter : $1"
+            echo -e "${red}Unknown parameter : $1${plain}"
             return 1
             shift
         ;;
