@@ -204,7 +204,7 @@ install_dashboard() {
     # 创建环境变量
     echo -e "HTTP_PORT=${SSS_HTTP_PORT}\nBIND_PORT=${SSS_BIND_PORT}" > .env
     # 创建配置文件
-    echo "{\"services\":[]}" | jq > config.json
+    echo "{\"servers\":[]}" | jq > config.json
 
     # 启动面板
     echo -e "正在启动监控面板..."
