@@ -1,6 +1,7 @@
 #!/bin/bash
 
 CURRENT_DIR=$(cd $(dirname $0);pwd)
+# current_dir=$(cd $(dirname $0);pwd)
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -181,7 +182,7 @@ set_dashboard_env() {
         _path=`[[ $_name =~ ^\/ ]] && echo "${_name}" || echo "${ROOT_DIR}/${_name}"`
         break
     done
-    while read -p "HTTP端口[${HTTP_PORT}]: ": _http_port
+    while read -p "HTTP端口[${HTTP_PORT}]: " _http_port
     do
         if [[ $_http_port == '' ]]; then
             _http_port=${HTTP_PORT}
@@ -199,7 +200,7 @@ set_dashboard_env() {
         fi
         break
     done
-    while read -p "HTTPS端口[${HTTPS_PORT}]: ": _https_port
+    while read -p "HTTPS端口[${HTTPS_PORT}]: " _https_port
     do
         if [[ $_https_port == '' ]]; then
             _https_port=${HTTPS_PORT}
@@ -257,7 +258,7 @@ set_agent_env() {
         _path=`[[ $_name =~ ^\/ ]] && echo "${_name}" || echo "${ROOT_DIR}/${_name}"`
         break
     done
-    while read -p "TCP端口[${TCP_PORT}]: ": _tcp_port
+    while read -p "TCP端口[${TCP_PORT}]: " _tcp_port
     do
         if [[ $_tcp_port == '' ]]; then
             _tcp_port=${TCP_PORT}
@@ -309,10 +310,11 @@ update_compose() {
     CONTAINER_IMAGE=`docker inspect ${CONTAINER_ID} | jq -r ".[0].Config.Image"`
     if [[ ${WORK_DIR} != null ]]; then
         cd ${WORK_DIR}
-        docker-compose down -v
+        docker-compose down
         docker rmi ${CONTAINER_IMAGE}
         sleep 3
         docker-compose up -d
+        echo
         echo -e "${green}Portainer ${CONTAINER_NAME}升级完成${plain}"
     else
         docker stop ${CONTAINER_ID}
@@ -322,6 +324,7 @@ update_compose() {
         # 安装新版
         if (echo "${CONTAINER_IMAGE}" | grep "portainer/agent" &> /dev/null); then 
             install_agent
+            echo
             echo -e "${green}Portainer 客户机升级完成${plain}"
         else
             install_dashboard
@@ -341,6 +344,17 @@ remove_compose() {
     rm -rf ${WORK_DIR}
 
     echo -e "${green}Portainer ${CONTAINER_NAME}卸载完成${plain}"
+}
+
+run_script() {
+    file=$1
+    filepath=`echo "$CURRENT_DIR/$file" | sed 's/portainer\/..\///'`
+    urlpath=`echo "$filepath" | sed 's/\/root\/.scripts\///'`
+    if [[ -f $filepath ]]; then
+        sh $filepath "${@:2}"
+    else
+        wget -O $filepath ${urlroot}/main/linux/$urlpath && chmod +x $filepath && clear && $filepath "${@:2}"
+    fi
 }
 
 show_menu() {
@@ -366,7 +380,11 @@ show_menu() {
     
     case "${num}" in
     0  )
-        exit 0
+        if [[ $CURRENT_DIR == '/root/.scripts/docker/portainer' ]]; then
+            run_script ../project.sh
+        else
+            exit 0
+        fi
     ;;
     1  )
         clear
@@ -453,7 +471,17 @@ show_menu() {
                 install_agent
                 echo -e "${green}Portainer 客户机安装完成${plain}"
             ;;
+            * )
+                clear
+                show_menu
+                return 1
+            ;;
             esac
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
+            show_menu
+            break
         done
     ;;
     6  )
