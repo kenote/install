@@ -6,12 +6,27 @@ Docker 可以让开发者打包他们的应用以及依赖包到一个轻量级�
 
 ## 安装
 
-### Github
+创建目录
 ```bash
-wget -O docker.sh https://raw.githubusercontent.com/kenote/install/main/linux/docker/help.sh && chmod +x docker.sh && ./docker.sh install
+mkdir -p $HOME/.scripts/docker
 ```
 
-### Gitee
+下载脚本 - Github
 ```bash
-wget -O docker.sh https://gitee.com/kenote/install/raw/main/linux/docker/help.sh && chmod +x docker.sh && ./docker.sh install
+wget -O $HOME/.scripts/docker/help.sh https://raw.githubusercontent.com/kenote/install/main/linux/docker/help.sh
+```
+
+下载脚本 - Gitee
+```bash
+wget -O $HOME/.scripts/docker/help.sh https://gitee.com/kenote/install/raw/main/linux/docker/help.sh
+```
+
+设置权限
+```bash
+chmod +x $HOME/.scripts/docker/help.sh
+```
+
+运行脚本
+```bash
+$HOME/.scripts/docker/help.sh
 ```

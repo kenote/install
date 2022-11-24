@@ -57,7 +57,7 @@ confirm() {
 }
 
 get_docker_status() {
-    if (is_command docker); then
+    if (docker &> /dev/null); then
         status=`systemctl status docker | grep "active" | cut -d '(' -f2|cut -d ')' -f1`
         docker -v
         if (is_command docker-compose); then
@@ -88,6 +88,7 @@ read_docker_env() {
 
 install_base() {
     if !(is_command jq); then
+        yum install -y epel-release 2> /dev/null
         yum install -y jq 2> /dev/null || apt install -y jq
     fi
     if !(is_command lsof); then
@@ -115,14 +116,18 @@ install_docker() {
         chmod +x /usr/local/bin/docker-compose
         docker-compose --version
         echo -e "${green}Docker Compose 安装完成${plain}"
-        set_workdir
+        confirm "是否要设置工作目录吗?" "n"
+        if [[ $? == 0 ]]; then
+            set_workdir
+        fi
     fi
 }
 
 set_docker_env() {
     install_base
+    sleep 3
     echo "{}" | jq > /etc/docker/daemon.json
-    str=`cat config.json | jq`
+    str=`cat /etc/docker/daemon.json | jq`
     # 日志
     str=`echo "$str" | jq '.["log-driver"]="json-file"' | jq`
     str=`echo "$str" | jq '.["log-opts"]={}' | jq`; \
@@ -163,21 +168,21 @@ remove_docker() {
     if (is_command docker); then
         echo -e "删除 docker ..."
         if [[ $release == 'centos' ]]; then
-            sudo yum remove docker docker-common container-selinux docker-selinux docker-engine
+            sudo yum remove docker-ce docker-ce-cli containerd.io docker-scan-plugin docker-compose-plugin docker-ce-rootless-extras
         else
-            sudo apt-get remove docker docker-engine
+            sudo apt-get remove docker-ce docker-ce-cli containerd.io docker-scan-plugin docker-compose-plugin docker-ce-rootless-extras
         fi
-        rm -fr /var/lib/docker/
+        rm -rf /var/lib/docker/
         echo -e "${green}docker 删除完成${plain}"
     fi
 }
 
 set_workdir() {
-    while read -p "设置工作目录: " _workdir
+    ROOT_DIR=`[ -f $HOME/.docker_profile ] && cat $HOME/.docker_profile | grep "DOCKER_WORKDIR" |  sed 's/\(.*\)=\(.*\)/\2/g' || echo "/home/docker-data"`
+    while read -p "设置工作目录[${ROOT_DIR}]: " _workdir
     do
         if [[ $_workdir == '' ]]; then
-            echo -e "${red}工作目录不能为空！${plain}"
-            continue
+            _workdir=${ROOT_DIR}
         fi
         dir_flag==`echo "$_workdir" | gawk '/^\/(\w+\/?)+$/{print $0}'`
         if [[ ! -n "${dir_flag}" ]]; then
