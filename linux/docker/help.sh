@@ -1,6 +1,6 @@
 #! /bin/bash
 
-current_dir=$(cd $(dirname $0);pwd)
+CURRENT_DIR=$(cd $(dirname $0);pwd)
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -32,9 +32,11 @@ check_sys(){
         release="centos"
     fi
     if (is_oversea); then
-        urlroot="https://raw.githubusercontent.com/kenote/install"
+        REPOSITORY_RAW_ROOT="https://raw.githubusercontent.com/kenote/install"
+        DOCKER_COMPOSE_REPO="https://github.com"
     else
-        urlroot="https://gitee.com/kenote/install/raw"
+        REPOSITORY_RAW_ROOT="https://gitee.com/kenote/install/raw"
+        DOCKER_COMPOSE_REPO="https://get.daocloud.io"
     fi
 }
 
@@ -61,12 +63,20 @@ get_docker_status() {
         if (is_command docker-compose); then
             docker-compose -v
         fi
+        if [[ $status != 'running' ]]; then
+            systemctl stop docker
+        fi
     else
-        echo -e "${yellow}Docker 未安装, 请先安装${plain}"
+        return 1
     fi
 }
 
 read_docker_env() {
+    get_docker_status
+    if [[ $? == 1 ]]; then
+        echo -e "${yellow}Docker 环境未安装${plain}"
+        return 1
+    fi
     status=`systemctl status docker | grep "active" | cut -d '(' -f2|cut -d ')' -f1`
     echo
     if [[ $status == 'running' ]]; then
@@ -74,14 +84,20 @@ read_docker_env() {
     else
         echo -e "状态 -- ${red}停止${plain}"
     fi
-    echo
+}
+
+install_base() {
+    if !(is_command jq); then
+        yum install -y jq 2> /dev/null || apt install -y jq
+    fi
+    if !(is_command lsof); then
+        yum install -y lsof 2> /dev/null || apt install -y lsof
+    fi
 }
 
 install_docker() {
-    if (is_command docker); then
-        echo -e "docker 已经存在, 无需安装"
-    else
-        echo -e "开始安装 docker ..."
+    if !(is_command docker); then
+        echo -e "开始安装 Docker ..."
         if (is_oversea); then
             wget -qO- get.docker.com | bash
         else
@@ -89,67 +105,52 @@ install_docker() {
         fi
         docker -v
         systemctl enable docker
-        systemctl restart docker
-        echo -e "${green}docker 安装完成${plain}"
+        set_docker_env
+        echo -e "${green}Docker 安装完成${plain}"
     fi
-}
-
-install_compose() {
-    if (is_command docker-compose); then
-        echo -e "docker-compose 已经存在, 无需安装"
-    else
-        echo -e "开始安装 docker-compose ..."
-        if (is_oversea); then
-            compose_url="https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)"
-        else
-            compose_url="https://get.daocloud.io/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)"
-        fi
-        curl -L ${compose_url} -o /usr/local/bin/docker-compose
+    # 安装 Docker Compose
+    if !(is_command docker-compose); then
+        echo -e "正在安装 Docker Compose ..."
+        curl -L ${DOCKER_COMPOSE_REPO}/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
         chmod +x /usr/local/bin/docker-compose
         docker-compose --version
-        echo -e "${green}docker-compose 安装完成${plain}"
+        echo -e "${green}Docker Compose 安装完成${plain}"
+        set_workdir
     fi
 }
 
-set_daemon() {
-    echo -e "优化配置; 开启容器的 IPv6 功能，以及限制日志文件大小，防止 Docker 日志塞满硬盘"
-    mkdir -p /etc/docker
-    if (is_oversea); then
-        cat > /etc/docker/daemon.json <<EOF
-{
-    "log-driver": "json-file",
-    "log-opts": {
-        "max-size": "20m",
-        "max-file": "3"
-    },
-    "ipv6": true,
-    "fixed-cidr-v6": "fd00:dead:beef:c0::/80",
-    "experimental":true,
-    "ip6tables":true
-}
-EOF
-    else
-        cat > /etc/docker/daemon.json <<EOF
-{
-    "log-driver": "json-file",
-    "log-opts": {
-        "max-size": "20m",
-        "max-file": "3"
-    },
-    "ipv6": true,
-    "fixed-cidr-v6": "fd00:dead:beef:c0::/80",
-    "experimental":true,
-    "ip6tables":true,
-    "registry-mirrors": [
-        "https://hub-mirror.c.163.com",
-        "https://registry.aliyuncs.com",
-        "https://registry.docker-cn.com",
-        "https://docker.mirrors.ustc.edu.cn"
-    ]
-}
-EOF
+set_docker_env() {
+    install_base
+    echo "{}" | jq > /etc/docker/daemon.json
+    str=`cat config.json | jq`
+    # 日志
+    str=`echo "$str" | jq '.["log-driver"]="json-file"' | jq`
+    str=`echo "$str" | jq '.["log-opts"]={}' | jq`; \
+    str=`echo "$str" | jq '.["log-opts"]["max-size"]="20m"' | jq`
+    str=`echo "$str" | jq '.["log-opts"]["max-file"]="3"' | jq`
+
+    # ipv6
+    str=`echo "$str" | jq '.ipv6=true' | jq`; \
+    str=`echo "$str" | jq '.["fixed-cidr-v6"]="fd00:dead:beef:c0::/80"' | jq`
+    str=`echo "$str" | jq '.experimental=true' | jq`
+    str=`echo "$str" | jq '.ip6tables=false' | jq`
+
+    # firewalld
+    str=`echo "$str" | jq '.iptables=false' | jq`
+
+    # 国内镜像源
+    if !(is_oversea); then
+        str=`echo "$str" | jq '.["registry-mirrors"]=[]' | jq`
+        str=`echo "$str" | jq '.["registry-mirrors"][0]="https://hub-mirror.c.163.com"' | jq`
+        str=`echo "$str" | jq '.["registry-mirrors"][1]="https://registry.aliyuncs.com"' | jq`
+        str=`echo "$str" | jq '.["registry-mirrors"][2]="https://registry.docker-cn.com"' | jq`
+        str=`echo "$str" | jq '.["registry-mirrors"][3]="https://docker.mirrors.ustc.edu.cn"' | jq`
     fi
-    echo -e "重启 docker ..."
+
+    # 写入文件
+    echo "$str" > /etc/docker/daemon.json
+    sleep 3
+
     systemctl restart docker
 }
 
@@ -191,7 +192,6 @@ set_workdir() {
 }
 
 show_menu() {
-    get_docker_status
     echo -e "
   ${green}Docker 管理助手${plain}
 
@@ -205,29 +205,36 @@ show_menu() {
   ${green} 5${plain}. 安装 Docker
   ${green} 6${plain}. 卸载 Docker
   ${green} 7${plain}. 设置工作目录
+  ${green} 8${plain}. 重置Docker环境
  ------------------------
-  ${green} 8${plain}. 部署 Portainer
-  ${green} 9${plain}. 部署 FRP 内网穿透
+  ${green} 9${plain}. 常用 Docker 项目
   "
     echo && read -p "请输入选择 [0-9]: " num
     echo
     
     case "${num}" in
     0  )
-        exit 0
+        if [[ $CURRENT_DIR == '/root/.scripts/docker' ]]; then
+            run_script ../help.sh
+        else
+            exit 0
+        fi
     ;;
     1  )
         clear
-        if !(is_command docker); then
-            show_menu
-            return 1
-        fi
         read_docker_env
+        echo
+        read  -n1  -p "按任意键继续" key
+        clear
         show_menu
     ;;
     2 | 3 | 4 )
         clear
-        if !(is_command docker); then
+        read_docker_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
@@ -236,68 +243,115 @@ show_menu() {
             if [[ $status == 'running' ]]; then
                 confirm "Docker 正在运行, 是否要重启?" "n"
                 if [[ $? == 0 ]]; then
+                    echo
                     systemctl restart docker
+                else
+                    clear
+                    show_menu
+                    return 0
                 fi
             else
+                echo
                 systemctl start docker
             fi
         ;;
         3)
+            echo -e "停止中..."
             if [[ $status == 'running' ]]; then
+                echo
                 systemctl stop docker
             else
+                echo
                 echo -e "${yellow}Docker 当前停止状态, 无需存在${plain}"
+                echo
+                read  -n1  -p "按任意键继续" key
+                clear
+                show_menu
+                return 0
             fi
         ;;
         4)
+            echo
             systemctl restart docker
         ;;
         esac
+        clear
         read_docker_env
+        echo
+        read  -n1  -p "按任意键继续" key
+        clear
         show_menu
     ;;
     5  )
         clear
+        read_docker_env
+        if [[ $? == 0 ]]; then
+            confirm "Docker 环境已经安装, 是否要重新安装?" "n"
+            if [[ $? == 0 ]]; then
+                remove_docker
+            else
+                clear
+                show_menu
+                return 0
+            fi
+        fi
         install_docker
-        install_compose
-        sleep 5
-        set_daemon
         read  -n1  -p "按任意键继续" key
         clear
-        read_docker_env
         show_menu
     ;;
     6  )
         clear
+        read_docker_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
+            show_menu
+            return 1
+        fi
         remove_docker
         read  -n1  -p "按任意键继续" key
         clear
-        read_docker_env
         show_menu
     ;;
     7  )
         clear
+        read_docker_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
+            show_menu
+            return 1
+        fi
         set_workdir
         read  -n1  -p "按任意键继续" key
         clear
-        read_docker_env
         show_menu
     ;;
     8  )
         clear
-        run_script portainer.sh
-        read  -n1  -p "按任意键继续" key
-        clear
         read_docker_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
+            show_menu
+            return 1
+        fi
+        confirm "确定要重置Docker环境吗?" "n"
+        if [[ $? == 0 ]]; then
+            set_docker_env
+            echo -e "${green}Docker环境已经重置！${plain}"
+            echo
+            read  -n1  -p "按任意键继续" key
+        fi
+        clear
         show_menu
     ;;
     9  )
-        clear
-        run_script frp.sh
-        read  -n1  -p "按任意键继续" key
-        clear
-        read_docker_env
-        show_menu
+        run_script project.sh
     ;;
     *  )
         echo -e "${red}请输入正确的数字 [0-9]${plain}"
@@ -307,17 +361,20 @@ show_menu() {
 
 run_script() {
     file=$1
-    filepath=`echo "$current_dir/$file" | sed 's/docker\/..\///'`
+    filepath=`echo "$CURRENT_DIR/$file" | sed 's/docker\/..\///'`
     urlpath=`echo "$filepath" | sed 's/\/root\/.scripts\///'`
     if [[ -f $filepath ]]; then
         sh $filepath "${@:2}"
     else
-        wget -O $filepath ${urlroot}/main/linux/$urlpath && chmod +x $filepath && clear && $filepath "${@:2}"
+        wget -O $filepath ${REPOSITORY_RAW_ROOT}/main/linux/$urlpath && chmod +x $filepath && clear && $filepath "${@:2}"
     fi
 }
 
 main() {
     case $1 in
+    install)
+        install_docker
+    ;;
     workdir)
         set_workdir
     ;;
