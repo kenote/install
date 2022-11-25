@@ -97,6 +97,7 @@ install_base() {
 }
 
 install_docker() {
+    install_base
     if !(is_command docker); then
         echo -e "开始安装 Docker ..."
         if (is_oversea); then
@@ -359,7 +360,10 @@ show_menu() {
         run_script project.sh
     ;;
     *  )
+        clear
         echo -e "${red}请输入正确的数字 [0-9]${plain}"
+        sleep 1
+        show_menu
     ;;
     esac
 }
