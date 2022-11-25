@@ -33,45 +33,13 @@ confirm() {
 
 pre_check(){
     if (is_oversea); then
-        REPOSITORY_RAW_URL="https://raw.githubusercontent.com/kenote/install/main/linux/docker/serverstatus"
-        DOCKER_COMPOSE_REPO="https://github.com"
+        REPOSITORY_RAW_ROOT="https://raw.githubusercontent.com/kenote/install"
     else
-        REPOSITORY_RAW_URL="https://gitee.com/kenote/install/raw/main/linux/docker/serverstatus"
-        DOCKER_COMPOSE_REPO="https://get.daocloud.io"
+        REPOSITORY_RAW_ROOT="https://gitee.com/kenote/install/raw"
     fi
-}
-
-install_base() {
-    if !(is_command jq); then
-        yum install -y jq 2> /dev/null || apt install -y jq
-    fi
-    if !(is_command lsof); then
-        yum install -y lsof 2> /dev/null || apt install -y lsof
-    fi
-}
-
-install_docker() {
-    # 安装 Docker
-    if !(is_command docker); then
-        echo -e "正在安装 Docker ..."
-        if (is_oversea); then
-            wget -qO- get.docker.com | bash
-        else
-            curl -sSL https://get.daocloud.io/docker | sh
-        fi
-        docker -v
-        systemctl enable docker
-        systemctl restart docker
-        echo -e "${green}Docker 安装完成${plain}"
-    fi
-    # 安装 Docker Compose
-    if !(is_command docker-compose); then
-        echo -e "正在安装 Docker Compose"
-        curl -L ${DOCKER_COMPOSE_REPO}/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
-        chmod +x /usr/local/bin/docker-compose
-        docker-compose --version
-        echo -e "${green}Docker Compose 安装完成${plain}"
-    fi
+    REPOSITORY_RAW_URL="${REPOSITORY_RAW_ROOT}/main/linux/docker/serverstatus"
+    curl -s ${REPOSITORY_RAW_ROOT}/main/linux/docker/help.sh | bash -s install
+    ROOT_DIR=`[ -f $HOME/.docker_profile ] && cat $HOME/.docker_profile | grep "^DOCKER_WORKDIR" | sed -n '1p' |  sed 's/\(.*\)=\(.*\)/\2/g' || echo "/home/docker-data"`
 }
 
 read_dashboard_env() {
@@ -87,7 +55,6 @@ read_dashboard_env() {
     else
         echo -e "状态 -- ${red}停止${plain}"
     fi
-    # echo
 }
 
 set_dashboard_env() {
@@ -95,54 +62,51 @@ set_dashboard_env() {
     HTTP_PORT="8081"
     BIND_PORT="35601"
     if [[ $_path == '' ]]; then
-        while read -p "安装路径[默认 ${CURRENT_DIR}/sss]: " _path
+        while read -p "安装路径[serverstatus]: " _name
         do
             if [[ $_path = '' ]]; then
-                _path=${CURRENT_DIR}/sss
+                _name="serverstatus"
             fi
-            if [ -d $_path ]; then
-                echo -e "${red}该目录已经在，请更换${plain}"
-                continue
-            fi
+            _path=`[[ $_name =~ ^\/ ]] && echo "${_name}" || echo "${ROOT_DIR}/${_name}"`
             break
         done
     else
         CONTAINER_ID=`docker ps -q -f "ancestor=cppla/serverstatus"`
-        HTTP_PORT=`docker inspect ${CONTAINER_ID} | jq -r ".[0].NetworkSettings.Ports[\"80/tcp\"][0].HostPort"`
-        BIND_PORT=`docker inspect ${CONTAINER_ID} | jq -r ".[0].NetworkSettings.Ports[\"35601/tcp\"][0].HostPort"`
+        HTTP_PORT=`docker inspect ${CONTAINER_ID} | jq -r ".[0].NetworkSettings.Ports[\"${HTTP_PORT}/tcp\"][0].HostPort"`
+        BIND_PORT=`docker inspect ${CONTAINER_ID} | jq -r ".[0].NetworkSettings.Ports[\"${BIND_PORT}/tcp\"][0].HostPort"`
     fi
-    while read -p "面板端口[默认 ${HTTP_PORT}]:" _http_port
+    while read -p "面板端口[${HTTP_PORT}]:" _http_port
     do
         if [[ $_http_port = '' ]]; then
             _http_port=${HTTP_PORT}
         fi
         if [[ ! $_http_port =~ ^[1-9]{1}[0-9]{1,4}$ ]]; then
-            echo -e "${red}端口号格式错误！${plain}"
+            echo -e "${red}面板端口格式错误！${plain}"
             continue
         fi
         if [[ $_http_port == ${HTTP_PORT} ]]; then
             break
         fi
         if (lsof -i:$_http_port  &> /dev/null); then
-            echo -e "${red}端口-[${_http_port}]-被占用，请更换${plain}"
+            echo -e "${red}面板端口-[${_http_port}]-被占用，请更换${plain}"
             continue
         fi
         break
     done
-    while read -p "对接端口[默认 ${BIND_PORT}]:" _bind_port
+    while read -p "TCP端口[默认 ${BIND_PORT}]:" _bind_port
     do
         if [[ $_bind_port = '' ]]; then
             _bind_port=${BIND_PORT}
         fi
         if [[ ! $_bind_port =~ ^[1-9]{1}[0-9]{1,4}$ ]]; then
-            echo -e "${red}端口号格式错误！${plain}"
+            echo -e "${red}TCP端口格式错误！${plain}"
             continue
         fi
         if [[ $_bind_port == ${BIND_PORT} ]]; then
             break
         fi
         if (lsof -i:$_bind_port  &> /dev/null); then
-            echo -e "${red}端口-[${_bind_port}]-被占用，请更换${plain}"
+            echo -e "${red}TCP端口-[${_bind_port}]-被占用，请更换${plain}"
             continue
         fi
         break
@@ -159,7 +123,6 @@ set_dashboard() {
     echo -e "  配置 Server Status 监控面板"
     echo -e "----------------${plain}"
 
-    # CONTAINER_ID=`docker ps -q -f "ancestor=cppla/serverstatus"`
     WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[0].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
 
     cd ${WORK_DIR}
@@ -263,6 +226,13 @@ add_agent() {
         fi
         break
     done
+    confirm "是否采用本机IP?" "n"
+    if [[ $? == 0 ]]; then
+        if !(systemctl list-unit-files | grep "sss-agent.service"  &> /dev/null); then
+            use_localip="true"
+        fi
+    fi
+    
 
     _user=`uuidgen | tr -dc '[:xdigit:]'`
     _pass=`strings /dev/urandom |tr -dc A-Za-z0-9 | head -c16; echo`
@@ -274,7 +244,6 @@ add_agent() {
     server="{\"monthstart\":\"1\",\"location\":\"${_location}\",\"type\":\"${_type}\",\"name\":\"${_name}\",\"host\":\"${_name}\",\"username\":\"${_user}\",\"password\":\"${_pass}\"}"
     # cat config.json | jq ".servers[${#servers[@]}]=${server}" 
 
-
     echo
     str=`cat config.json | jq ".servers[${#servers[@]}]=${server}"`; 
     echo "$str" > config.json
@@ -282,7 +251,14 @@ add_agent() {
     docker-compose restart
     echo
     
-    look_agent ${#servers[@]}
+    if [[ $use_localip == 'true' ]]; then
+        BIND_PORT=`docker inspect ${CONTAINER_ID} | jq -r ".[0].NetworkSettings.Ports[\"35601/tcp\"][0].HostPort"`
+        wget -O $HOME/sss-agent.sh ${REPOSITORY_RAW_URL}/agent.sh
+        chmod +x $HOME/sss-agent.sh
+        sudo $HOME/sss-agent.sh install --host 127.0.0.1 --port ${BIND_PORT} --user $_user --pass $_pass
+    else
+        look_agent ${#servers[@]}
+    fi
 }
 
 list_agent() {
@@ -363,8 +339,6 @@ list_agent() {
         esac
         break
     done
-    
-    # echo -e "opt ${_opt}"
 }
 
 edit_agent() {
@@ -470,8 +444,19 @@ look_agent() {
 
 }
 
+run_script() {
+    file=$1
+    filepath=`echo "$CURRENT_DIR/$file" | sed 's/serverstatus\/..\///'`
+    urlpath=`echo "$filepath" | sed 's/\/root\/.scripts\///'`
+    if [[ -f $filepath ]]; then
+        sh $filepath "${@:2}"
+    else
+        mkdir -p $(dirname $filepath)
+        wget -O $filepath ${REPOSITORY_RAW_ROOT}/main/linux/$urlpath && chmod +x $filepath && clear && $filepath "${@:2}"
+    fi
+}
+
 show_menu() {
-    # read_dashboard_env
     num=$1
     if [[ $1 == '' ]]; then
         echo -e "
@@ -497,29 +482,30 @@ show_menu() {
     
     case "${num}" in
     0  )
-        exit 0
+        if [[ $CURRENT_DIR == '/root/.scripts/docker/serverstatus' ]]; then
+            run_script ../project.sh
+        else
+            exit 0
+        fi
     ;;
     1  )
         clear
-        CONTAINER_ID=`docker container ls -a -q -f "ancestor=cppla/serverstatus"`
-        if [[ $CONTAINER_ID == '' ]]; then
-            echo -e "${yellow}Server Status 监控面板未安装${plain}"
-            show_menu
-            return 1
-        fi
         read_dashboard_env
+        echo
+        read  -n1  -p "按任意键继续" key
+        clear
         show_menu
     ;;
     2 | 3 | 4 )
         clear
-        CONTAINER_ID=`docker container ls -a -q -f "ancestor=cppla/serverstatus"`
-        if [[ $CONTAINER_ID == '' ]]; then
-            echo -e "${yellow}Server Status 监控面板未安装${plain}"
+        read_dashboard_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
-        read_dashboard_env
-        # CONTAINER_ID=`docker ps -q -f "ancestor=cppla/serverstatus"`
         WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[0].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
         cd ${WORK_DIR}
         case "${num}" in
@@ -527,53 +513,65 @@ show_menu() {
             if [[ $status == 'running' ]]; then
                 confirm "Server Status 监控面板正在运行, 是否要重启?" "n"
                 if [[ $? == 0 ]]; then
+                    echo
                     docker-compose restart
-                    read  -n1  -p "按任意键继续" key
+                else
+                    clear
+                    show_menu
+                    return 0
                 fi
             else
+                echo
                 docker-compose start
-                read  -n1  -p "按任意键继续" key
             fi
         ;;
         3)
             if [[ $status == 'running' ]]; then
+                echo
                 docker-compose stop
             else
+                echo
                 echo -e "${yellow}Server Status 监控面板当前停止状态, 无需操作${plain}"
             fi
-            read  -n1  -p "按任意键继续" key
         ;;
         4)
+            echo
             docker-compose restart
-            read  -n1  -p "按任意键继续" key
         ;;
         esac
-        clear
         read_dashboard_env
+        echo
+        read  -n1  -p "按任意键继续" key
+        clear
         show_menu
     ;;
     5  )
         clear
-        CONTAINER_ID=`docker container ls -a -q -f "ancestor=cppla/serverstatus"`
-        if [[ $CONTAINER_ID != '' ]]; then
-            echo -e "${yellow}Server Status 监控面板已安装${plain}"
+        read_dashboard_env
+        if [[ $? == 0 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
         confirm "确定要安装 Server Status 监控面板吗?" "n"
         if [[ $? == 0 ]]; then
             install_dashboard
-            read  -n1  -p "按任意键继续" key
+            echo -e "${green}Portainer 面板安装完成${plain}"
         fi
+        echo
+        read  -n1  -p "按任意键继续" key
         clear
-        read_dashboard_env
         show_menu
     ;;
     6  )
         clear
-        CONTAINER_ID=`docker container ls -a -q -f "ancestor=cppla/serverstatus"`
-        if [[ $CONTAINER_ID == '' ]]; then
-            echo -e "${yellow}检测到 Server Status 监控面板未安装${plain}"
+        read_dashboard_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
@@ -583,14 +581,15 @@ show_menu() {
             read  -n1  -p "按任意键继续" key
         fi
         clear
-        read_dashboard_env
         show_menu
     ;;
     7  )
         clear
-        CONTAINER_ID=`docker container ls -a -q -f "ancestor=cppla/serverstatus"`
-        if [[ $CONTAINER_ID == '' ]]; then
-            echo -e "${yellow}检测到 Server Status 监控面板未安装${plain}"
+        read_dashboard_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
@@ -600,14 +599,15 @@ show_menu() {
             read  -n1  -p "按任意键继续" key
         fi
         clear
-        read_dashboard_env
         show_menu
     ;;
     8  )
         clear
-        CONTAINER_ID=`docker container ls -a -q -f "ancestor=cppla/serverstatus"`
-        if [[ $CONTAINER_ID == '' ]]; then
-            echo -e "${yellow}检测到 Server Status 监控面板未安装${plain}"
+        read_dashboard_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
@@ -616,25 +616,28 @@ show_menu() {
             read  -n1  -p "按任意键继续" key
         fi
         clear
-        read_dashboard_env
         show_menu
     ;;
     9  )
         clear
-        CONTAINER_ID=`docker container ls -a -q -f "ancestor=cppla/serverstatus"`
-        if [[ $CONTAINER_ID == '' ]]; then
-            echo -e "${yellow}检测到 Server Status 监控面板未安装${plain}"
+        read_dashboard_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
         add_agent
         read  -n1  -p "按任意键继续" key
         clear
-        read_dashboard_env
         show_menu
     ;;
     *  )
+        clear
         echo -e "${red}请输入正确的数字 [0-9]${plain}"
+        sleep 1
+        show_menu
     ;;
     esac
 }
@@ -643,9 +646,11 @@ main() {
     case $1 in
     install)
         clear
-        CONTAINER_ID=`docker container ls -a -q -f "ancestor=cppla/serverstatus"`
-        if [[ $CONTAINER_ID != '' ]]; then
-            echo -e "${yellow}检测到 Server Status 监控面板已安装${plain}"
+        read_dashboard_env
+        if [[ $? == 0 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi

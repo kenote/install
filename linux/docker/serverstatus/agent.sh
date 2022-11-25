@@ -4,7 +4,6 @@ SSS_BASE_PATH="/opt/sss"
 SSS_AGENT_PATH="${SSS_BASE_PATH}/agent"
 SERVICE_NAME="sss-agent.service"
 SSS_AGENT_SERVICE="/etc/systemd/system/${SERVICE_NAME}"
-REPOSITORY_RAW_URL="https://raw.githubusercontent.com/lidalao/ServerStatus/master"
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -44,6 +43,10 @@ confirm() {
 }
 
 read_agent_env() {
+    if !(systemctl list-unit-files | grep "${SERVICE_NAME}"  &> /dev/null); then
+        echo -e "${yellow}检测到 Server Status 客户端未安装，请先安装客户端${plain}"
+        return 1
+    fi
     status=`systemctl status ${SERVICE_NAME} | grep "active" | cut -d '(' -f2|cut -d ')' -f1`
     echo
     if [[ $status == 'running' ]]; then
@@ -51,7 +54,6 @@ read_agent_env() {
     else
         echo -e "状态 -- ${red}停止${plain}"
     fi
-    # echo
 }
 
 get_param_val() {
@@ -258,18 +260,19 @@ show_menu() {
     ;;
     1  )
         clear
-        if !(systemctl list-unit-files | grep "${SERVICE_NAME}"  &> /dev/null); then
-            echo -e "${yellow}检测到 Server Status 客户端未安装，请先安装客户端${plain}"
-            show_menu
-            return 1
-        fi
         read_agent_env
+        echo
+        read  -n1  -p "按任意键继续" key
+        clear
         show_menu
     ;;
     2 | 3 | 4 )
         clear
-        if !(systemctl list-unit-files | grep "${SERVICE_NAME}"  &> /dev/null); then
-            echo -e "${yellow}检测到 Server Status 客户端未安装，请先安装客户端${plain}"
+        read_agent_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
@@ -277,38 +280,69 @@ show_menu() {
         2)
             if [[ $status == 'running' ]]; then
                 confirm "Server Status 客户端正在运行, 是否要重启?" "n"
+                clear
                 if [[ $? == 0 ]]; then
+                    echo
+                    echo -e "重启中..."
                     systemctl restart ${SERVICE_NAME}
+                else
+                    show_menu
+                    return 0
                 fi
             else
+                clear
+                echo
+                echo -e "启动中..."
                 systemctl start ${SERVICE_NAME}
             fi
         ;;
         3)
+            clear
             if [[ $status == 'running' ]]; then
+                echo
+                echo -e "停止中..."
                 systemctl stop ${SERVICE_NAME}
             else
+                echo
                 echo -e "${yellow}Server Status 客户端当前停止状态, 无需操作${plain}"
+                echo
+                read  -n1  -p "按任意键继续" key
+                clear
+                show_menu
+                return 0
             fi
         ;;
         4)
+            clear
+            echo
+            echo -e "重启中..."
             systemctl restart ${SERVICE_NAME}
         ;;
         esac
         read_agent_env
+        echo
+        read  -n1  -p "按任意键继续" key
+        clear
         show_menu
     ;;
     5  )
         clear
-        if (systemctl list-unit-files | grep "${SERVICE_NAME}"  &> /dev/null); then
-            echo -e "${yellow}检测到 Server Status 客户端已安装${plain}"
+        read_agent_env
+        if [[ $? == 0 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
+        clear
         confirm "确定要安装 Server Status 客户端吗?" "n"
-        if [[ $? == 0 ]]; then
-            install_agent
+        if [[ $? == 1 ]]; then
+            clear
+            show_menu
+            return 0
         fi
+        install_agent
         read  -n1  -p "按任意键继续" key
         clear
         read_agent_env
@@ -316,15 +350,22 @@ show_menu() {
     ;;
     6  )
         clear
-        if !(systemctl list-unit-files | grep "${SERVICE_NAME}"  &> /dev/null); then
-            echo -e "${yellow}检测到 Server Status 客户端未安装，请先安装客户端${plain}"
+        read_agent_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
+        clear
         confirm "确定要卸载 Server Status 客户端吗?" "n"
-        if [[ $? == 0 ]]; then
-            remove_agent
+        if [[ $? == 1 ]]; then
+            clear
+            show_menu
+            return 0
         fi
+        remove_agent
         read  -n1  -p "按任意键继续" key
         clear
         read_agent_env
@@ -332,22 +373,29 @@ show_menu() {
     ;;
     7  )
         clear
-        if !(systemctl list-unit-files | grep "${SERVICE_NAME}"  &> /dev/null); then
-            echo -e "${yellow}检测到 Server Status 客户端未安装，请先安装客户端${plain}"
+        read_agent_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
+        clear
         echo -e "${green}----------------"
         echo -e "  配置参数"
         echo -e "----------------${plain}"
         modify_agent_config "$@"
+        read_agent_env
         read  -n1  -p "按任意键继续" key
         clear
-        read_agent_env
         show_menu
     ;;
     *  )
+        clear
         echo -e "${red}请输入正确的数字 [0-7]${plain}"
+        sleep 1
+        show_menu
     ;;
     esac
 }
@@ -355,8 +403,11 @@ show_menu() {
 main() {
     case $1 in
     install)
-        if (systemctl list-unit-files | grep "${SERVICE_NAME}"  &> /dev/null); then
-            echo -e "${yellow}检测到 Server Status 客户端已安装${plain}"
+        read_agent_env
+        if [[ $? == 0 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi

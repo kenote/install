@@ -266,7 +266,7 @@ run_script() {
         sh $filepath "${@:2}"
     else
         mkdir -p $(dirname $filepath)
-        wget -O $filepath ${urlroot}/main/linux/$urlpath && chmod +x $filepath && clear && $filepath "${@:2}"
+        wget -O $filepath ${REPOSITORY_RAW_ROOT}/main/linux/$urlpath && chmod +x $filepath && clear && $filepath "${@:2}"
     fi
 }
 
