@@ -222,13 +222,12 @@ add_agent() {
         fi
         break
     done
-    confirm "是否采用本机IP?" "n"
-    if [[ $? == 0 ]]; then
-        if !(systemctl list-unit-files | grep "sss-agent.service"  &> /dev/null); then
+    if !(systemctl list-unit-files | grep "sss-agent.service"  &> /dev/null); then
+        confirm "是否采用本机IP?" "n"
+        if [[ $? == 0 ]]; then
             use_localip="true"
         fi
     fi
-    
 
     _user=`uuidgen | tr -dc '[:xdigit:]'`
     _pass=`strings /dev/urandom |tr -dc A-Za-z0-9 | head -c16; echo`
@@ -238,8 +237,7 @@ add_agent() {
     servers=(`cat config.json | jq '.servers[].name'`)
 
     server="{\"monthstart\":\"1\",\"location\":\"${_location}\",\"type\":\"${_type}\",\"name\":\"${_name}\",\"host\":\"${_name}\",\"username\":\"${_user}\",\"password\":\"${_pass}\"}"
-    # cat config.json | jq ".servers[${#servers[@]}]=${server}" 
-
+    
     echo
     str=`cat config.json | jq ".servers[${#servers[@]}]=${server}"`; 
     echo "$str" > config.json
@@ -553,11 +551,12 @@ show_menu() {
         fi
         confirm "确定要安装 Server Status 监控面板吗?" "n"
         if [[ $? == 0 ]]; then
+            clear
             install_dashboard
             echo -e "${green}Portainer 面板安装完成${plain}"
+            echo
+            read  -n1  -p "按任意键继续" key
         fi
-        echo
-        read  -n1  -p "按任意键继续" key
         clear
         show_menu
     ;;
@@ -573,6 +572,7 @@ show_menu() {
         fi
         confirm "确定要卸载 Server Status 监控面板吗?" "n"
         if [[ $? == 0 ]]; then
+            clear
             remove_dashboard
             read  -n1  -p "按任意键继续" key
         fi
@@ -591,6 +591,7 @@ show_menu() {
         fi
         confirm "确定要重新配置 Server Status 监控面板吗?" "n"
         if [[ $? == 0 ]]; then
+            clear
             set_dashboard
             read  -n1  -p "按任意键继续" key
         fi
@@ -624,6 +625,7 @@ show_menu() {
             show_menu
             return 1
         fi
+        clear
         add_agent
         read  -n1  -p "按任意键继续" key
         clear
