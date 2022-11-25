@@ -1,7 +1,6 @@
 #!/bin/bash
 
 CURRENT_DIR=$(cd $(dirname $0);pwd)
-# current_dir=$(cd $(dirname $0);pwd)
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -34,103 +33,15 @@ confirm() {
 
 pre_check(){
     if (is_oversea); then
-        REPOSITORY_RAW_URL="https://raw.githubusercontent.com/kenote/install/main/linux/docker/portainer"
+        REPOSITORY_RAW_ROOT="https://raw.githubusercontent.com/kenote/install"
         DOCKER_COMPOSE_REPO="https://github.com"
     else
-        REPOSITORY_RAW_URL="https://gitee.com/kenote/install/raw/main/linux/docker/portainer"
+        REPOSITORY_RAW_ROOT="https://gitee.com/kenote/install/raw"
         DOCKER_COMPOSE_REPO="https://get.daocloud.io"
     fi
-    install_base
-    install_docker
+    REPOSITORY_RAW_URL="${REPOSITORY_RAW_ROOT}/main/linux/docker/portainer"
+    curl -s ${REPOSITORY_RAW_ROOT}/main/linux/docker/help.sh | bash -s install
     ROOT_DIR=`[ -f $HOME/.docker_profile ] && cat $HOME/.docker_profile | grep "DOCKER_WORKDIR" |  sed 's/\(.*\)=\(.*\)/\2/g' || echo "/home/docker-data"`
-}
-
-install_base() {
-    if !(is_command jq); then
-        yum install -y jq 2> /dev/null || apt install -y jq
-    fi
-    if !(is_command lsof); then
-        yum install -y lsof 2> /dev/null || apt install -y lsof
-    fi
-}
-
-install_docker() {
-    # 安装 Docker
-    if !(is_command docker); then
-        echo -e "正在安装 Docker ..."
-        if (is_oversea); then
-            wget -qO- get.docker.com | bash
-        else
-            curl -sSL https://get.daocloud.io/docker | sh
-        fi
-        docker -v
-        systemctl enable docker
-        set_docker_env
-        echo -e "${green}Docker 安装完成${plain}"
-    fi
-    # 安装 Docker Compose
-    if !(is_command docker-compose); then
-        echo -e "正在安装 Docker Compose"
-        curl -L ${DOCKER_COMPOSE_REPO}/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
-        chmod +x /usr/local/bin/docker-compose
-        docker-compose --version
-        echo -e "${green}Docker Compose 安装完成${plain}"
-        set_workdir
-    fi
-}
-
-set_docker_env() {
-    install_base
-    echo "{}" | jq > /etc/docker/daemon.json
-    str=`cat config.json | jq`
-    # 日志
-    str=`echo "$str" | jq '.["log-driver"]="json-file"' | jq`
-    str=`echo "$str" | jq '.["log-opts"]={}' | jq`; \
-    str=`echo "$str" | jq '.["log-opts"]["max-size"]="20m"' | jq`
-    str=`echo "$str" | jq '.["log-opts"]["max-file"]="3"' | jq`
-
-    # ipv6
-    str=`echo "$str" | jq '.ipv6=true' | jq`; \
-    str=`echo "$str" | jq '.["fixed-cidr-v6"]="fd00:dead:beef:c0::/80"' | jq`
-    str=`echo "$str" | jq '.experimental=true' | jq`
-    str=`echo "$str" | jq '.ip6tables=false' | jq`
-
-    # firewalld
-    str=`echo "$str" | jq '.iptables=false' | jq`
-
-    # 国内镜像源
-    if !(is_oversea); then
-        str=`echo "$str" | jq '.["registry-mirrors"]=[]' | jq`
-        str=`echo "$str" | jq '.["registry-mirrors"][0]="https://hub-mirror.c.163.com"' | jq`
-        str=`echo "$str" | jq '.["registry-mirrors"][1]="https://registry.aliyuncs.com"' | jq`
-        str=`echo "$str" | jq '.["registry-mirrors"][2]="https://registry.docker-cn.com"' | jq`
-        str=`echo "$str" | jq '.["registry-mirrors"][3]="https://docker.mirrors.ustc.edu.cn"' | jq`
-    fi
-
-    # 写入文件
-    echo "$str" > /etc/docker/daemon.json
-    sleep 3
-
-    systemctl restart docker
-}
-
-set_workdir() {
-    while read -p "设置工作目录: " _workdir
-    do
-        if [[ $_workdir == '' ]]; then
-            echo -e "${red}工作目录不能为空！${plain}"
-            continue
-        fi
-        dir_flag==`echo "$_workdir" | gawk '/^\/(\w+\/?)+$/{print $0}'`
-        if [[ ! -n "${dir_flag}" ]]; then
-            echo -e "${red}工作目录格式错误！${plain}"
-            continue
-        fi
-        break
-    done
-    echo -e "${yellow}设置工作目录: $_workdir${plain}"
-    echo -e "DOCKER_WORKDIR=$_workdir" >> $HOME/.docker_profile
-    mkdir -p $_workdir
 }
 
 read_dashboard_env() {
@@ -353,6 +264,7 @@ run_script() {
     if [[ -f $filepath ]]; then
         sh $filepath "${@:2}"
     else
+        mkdir -p $(dirname $filepath)
         wget -O $filepath ${urlroot}/main/linux/$urlpath && chmod +x $filepath && clear && $filepath "${@:2}"
     fi
 }
@@ -374,7 +286,7 @@ show_menu() {
   ${green} 6${plain}. 升级 Portainer
   ${green} 7${plain}. 卸载 Portainer
   "
-        echo && read -p "请输入选择 [0-9]: " num
+        echo && read -p "请输入选择 [0-7]: " num
         echo
     fi
     
@@ -523,9 +435,9 @@ show_menu() {
         show_menu
     ;;
     *  )
-        echo -e "${red}请输入正确的数字 [0-9]${plain}"
-        sleep 1
         clear
+        echo -e "${red}请输入正确的数字 [0-7]${plain}"
+        sleep 1
         show_menu
     ;;
     esac
