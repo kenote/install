@@ -147,10 +147,6 @@ install_dashboard() {
     echo -e "  安装 Server Status 监控面板"
     echo -e "----------------${plain}"
     
-    install_base
-    install_docker
-
-    
     # 设置面板参数
     set_dashboard_env
     SSS_BASE_PATH=$_path
