@@ -93,9 +93,10 @@ run_script() {
     file=$1
     filepath=`echo "$CURRENT_DIR/$file" | sed 's/docker\/..\///'`
     urlpath=`echo "$filepath" | sed 's/\/root\/.scripts\///'`
-    if [[ -f $filepath ]]; then
+    if [ -f $filepath ]; then
         sh $filepath "${@:2}"
     else
+        mkdir -p $(dirname $filepath)
         wget -O $filepath ${REPOSITORY_RAW_ROOT}/main/linux/$urlpath && chmod +x $filepath && clear && $filepath "${@:2}"
     fi
 }

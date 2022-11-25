@@ -179,7 +179,7 @@ remove_docker() {
 }
 
 set_workdir() {
-    ROOT_DIR=`[ -f $HOME/.docker_profile ] && cat $HOME/.docker_profile | grep "DOCKER_WORKDIR" |  sed 's/\(.*\)=\(.*\)/\2/g' || echo "/home/docker-data"`
+    ROOT_DIR=`[ -f $HOME/.docker_profile ] && cat $HOME/.docker_profile | grep "^DOCKER_WORKDIR" | sed -n '1p' |  sed 's/\(.*\)=\(.*\)/\2/g' || echo "/home/docker-data"`
     while read -p "设置工作目录[${ROOT_DIR}]: " _workdir
     do
         if [[ $_workdir == '' ]]; then
@@ -193,7 +193,11 @@ set_workdir() {
         break
     done
     echo -e "${yellow}设置工作目录: $_workdir${plain}"
-    echo -e "DOCKER_WORKDIR=$_workdir" >> $HOME/.docker_profile
+    if [ -f $HOME/.docker_profile ]; then
+        sed -i "s/$(cat $HOME/.docker_profile | grep -E "^DOCKER_WORKDIR=")/DOCKER_WORKDIR=$_workdir/" $HOME/.docker_profile
+    else
+        echo -e "DOCKER_WORKDIR=$_workdir" > $HOME/.docker_profile
+    if
     mkdir -p $_workdir
 }
 
@@ -375,6 +379,7 @@ run_script() {
     if [[ -f $filepath ]]; then
         sh $filepath "${@:2}"
     else
+        mkdir -p $(dirname $filepath)
         wget -O $filepath ${REPOSITORY_RAW_ROOT}/main/linux/$urlpath && chmod +x $filepath && clear && $filepath "${@:2}"
     fi
 }

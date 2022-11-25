@@ -41,7 +41,7 @@ pre_check(){
     fi
     REPOSITORY_RAW_URL="${REPOSITORY_RAW_ROOT}/main/linux/docker/portainer"
     curl -s ${REPOSITORY_RAW_ROOT}/main/linux/docker/help.sh | bash -s install
-    ROOT_DIR=`[ -f $HOME/.docker_profile ] && cat $HOME/.docker_profile | grep "DOCKER_WORKDIR" |  sed 's/\(.*\)=\(.*\)/\2/g' || echo "/home/docker-data"`
+    ROOT_DIR=`[ -f $HOME/.docker_profile ] && cat $HOME/.docker_profile | grep "^DOCKER_WORKDIR" | sed -n '1p' |  sed 's/\(.*\)=\(.*\)/\2/g' || echo "/home/docker-data"`
 }
 
 read_dashboard_env() {
@@ -85,6 +85,7 @@ set_dashboard_env() {
         HTTP_PORT=`docker inspect ${CONTAINER_ID} | jq -r ".[0].NetworkSettings.Ports[\"${HTTP_PORT}/tcp\"][0].HostPort"`
         HTTPS_PORT=`docker inspect ${CONTAINER_ID} | jq -r ".[0].NetworkSettings.Ports[\"${HTTPS_PORT}/tcp\"][0].HostPort"`
     fi
+    echo -e "${yellow}Docker 项目会安装在 ${ROOT_DIR}/ 目录下"
     while read -p "安装目录[portainer]: " _name
     do
         if [[ $_name == '' ]]; then
