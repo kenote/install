@@ -390,7 +390,7 @@ remove_agent() {
     cd ${WORK_DIR}
 
     echo
-    str=`cat config.json | jq "del(.servers[0${_id}])"`; 
+    str=`cat config.json | jq "del(.servers[${_id}])"`; 
     echo "$str" > config.json
 
     docker-compose restart
@@ -553,7 +553,7 @@ show_menu() {
         if [[ $? == 0 ]]; then
             clear
             install_dashboard
-            echo -e "${green}Portainer 面板安装完成${plain}"
+            echo -e "${green}Server Status 监控面板安装完成${plain}"
             echo
             read  -n1  -p "按任意键继续" key
         fi

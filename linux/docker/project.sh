@@ -64,8 +64,9 @@ show_menu() {
  ------------------------
   ${green} 1${plain}. Portainer -- Docker图形面板
   ${green} 2${plain}. ServerStatus -- 多服务器监控
+  ${green} 3${plain}. FRP -- 内网穿透服务
   "
-        echo && read -p "请输入选择 [0-2]: " num
+        echo && read -p "请输入选择 [0-3]: " num
         echo
     fi
     
@@ -83,8 +84,26 @@ show_menu() {
     2  )
         run_script serverstatus/server.sh
     ;;
+    3  )
+        list=(服务端 客户端)
+        select item in ${list[@]};
+        do
+            case $item in
+            服务端)
+                run_script frp/server.sh
+            ;;
+            客户端)
+                run_script frp/agent.sh
+            ;;
+            *)
+                clear
+                show_menu
+            ;;
+            break
+        done
+    ;;
     *  )
-        echo -e "${red}请输入正确的数字 [0-2]${plain}"
+        echo -e "${red}请输入正确的数字 [0-3]${plain}"
     ;;
     esac
 }
