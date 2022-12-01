@@ -1,9 +1,39 @@
 #!/bin/bash
 
+CURRENT_DIR=$(cd $(dirname $0);pwd)
+
 red='\033[0;31m'
 green='\033[0;32m'
 yellow='\033[0;33m'
 plain='\033[0m'
+
+# 判断是否海外网络
+is_oversea() {
+    curl --connect-timeout 5 https://www.google.com -s --head | head -n 1 | grep "HTTP/1.[01] [23].." &> /dev/null;
+}
+
+check_sys(){
+    if [[ -f /etc/redhat-release ]]; then
+        release="centos"
+    elif cat /etc/issue | grep -q -E -i "debian"; then
+        release="debian"
+    elif cat /etc/issue | grep -q -E -i "ubuntu"; then
+        release="ubuntu"
+    elif cat /etc/issue | grep -q -E -i "centos|red hat|redhat"; then
+        release="centos"
+    elif cat /proc/version | grep -q -E -i "debian"; then
+        release="debian"
+    elif cat /proc/version | grep -q -E -i "ubuntu"; then
+        release="ubuntu"
+    elif cat /proc/version | grep -q -E -i "centos|red hat|redhat"; then
+        release="centos"
+    fi
+    if (is_oversea); then
+        REPOSITORY_RAW_ROOT="https://raw.githubusercontent.com/kenote/install"
+    else
+        REPOSITORY_RAW_ROOT="https://gitee.com/kenote/install/raw"
+    fi
+}
 
 mem_size_kb=`cat /proc/meminfo | grep "MemTotal" | sed -E 's/[^0-9]//g'`
 mem_size_mb=`echo "scale=0; a = $mem_size_kb / 1024; if (length(a)==scale(a)) print 0;print a" | bc`
@@ -170,8 +200,11 @@ show_menu() {
     echo
     case "${num}" in
         0  )
-            clear
-            exit 0
+            if [[ $CURRENT_DIR == '/root/.scripts' ]]; then
+                run_script help.sh
+            else
+                exit 0
+            fi
         ;;
         1  )
             clear
@@ -203,5 +236,18 @@ show_menu() {
     esac
 }
 
+run_script() {
+    file=$1
+    filepath=`echo "$CURRENT_DIR/$file"`
+    urlpath=`echo "$filepath" | sed 's/\/root\/.scripts\///'`
+    if [[ -f $filepath ]]; then
+        sh $filepath "${@:2}"
+    else
+        mkdir -p $(dirname $filepath)
+        wget -O $filepath ${REPOSITORY_RAW_ROOT}/main/linux/$urlpath && chmod +x $filepath && clear && $filepath "${@:2}"
+    fi
+}
+
+check_sys
 get_swap_env
 show_menu

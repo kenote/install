@@ -1,6 +1,6 @@
 #! /bin/bash
 
-current_dir=$(cd $(dirname $0);pwd)
+CURRENT_DIR=$(cd $(dirname $0);pwd)
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -32,9 +32,9 @@ check_sys(){
         release="centos"
     fi
     if (is_oversea); then
-        urlroot="https://raw.githubusercontent.com/kenote/install"
+        REPOSITORY_RAW_ROOT="https://raw.githubusercontent.com/kenote/install"
     else
-        urlroot="https://gitee.com/kenote/install/raw"
+        REPOSITORY_RAW_ROOT="https://gitee.com/kenote/install/raw"
     fi
 }
 
@@ -113,16 +113,22 @@ initial_sys() {
 
     if [[ $release == 'centos' ]]; then
         yum update -y
-        yum install -y net-tools vim nano jq
+        yum install -y net-tools vim nano jq lsof
+        if !(command -v python3); then
+            yum install -y python3
+        fi
     else
         apt update -y
-        apt install -y net-tools bc vim nano jq
+        apt install -y net-tools bc vim nano jq lsof
+        if !(command -v python3); then
+            apt install -y python3
+        fi
     fi
     if !(command -v htop); then
-        curl -o- ${urlroot}/main/linux/install-htop.sh | bash
+        curl -o- ${REPOSITORY_RAW_ROOT}/main/linux/install-htop.sh | bash
     fi
     if !(command -v git); then
-        curl -o- ${urlroot}/main/linux/install-git.sh | bash
+        curl -o- ${REPOSITORY_RAW_ROOT}/main/linux/install-git.sh | bash
     fi
 }
 
@@ -150,7 +156,7 @@ set_hostname() {
 ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
 127.0.0.1   $_hostname $_litename
     " > /etc/hosts
-    echo "$_hostname" > /etc/hostname
+    echo "$_litename" > /etc/hostname
     hostname -F /etc/hostname
     echo -e "${green}主机名已设置为-[$_hostname]-, 请重启下终端！${plain}"
 }
@@ -259,7 +265,7 @@ show_menu() {
   ${green}13${plain}. Docker 助手
     "
   
-    echo && read -p "请输入选择 [0-14]: " num
+    echo && read -p "请输入选择 [0-13]: " num
     echo
     case "${num}" in
         0)
@@ -345,34 +351,23 @@ show_menu() {
             run_script docker/help.sh
         ;;
         *  )
-            echo -e "${red}请输入正确的数字 [0-14]${plain}"
+            echo -e "${red}请输入正确的数字 [0-13]${plain}"
         ;;
     esac
 }
 
 run_script() {
-    file=""
-    dir=""
-    url=""
-    files=(`echo $1 | sed 's/\// /'`)
-    if [[ ${#files[@]} > 1 ]]; then
-        type=${files[0]}
-        file=${files[1]}
-        dir=$current_dir/$type
-        url=$type/$file
-        mkdir -p $dir
+    file=$1
+    filepath=`echo "$CURRENT_DIR/$file"`
+    urlpath=`echo "$filepath" | sed 's/\/root\/.scripts\///'`
+    if [[ -f $filepath ]]; then
+        sh $filepath "${@:2}"
     else
-        file=${files[0]}
-        dir=$current_dir
-        url=$file
-    fi
-    if [[ -f $dir/$file ]]; then
-        sh $dir/$file "${@:2}"
-    else
-        # mkdir -p  $dir
-        wget -O $dir/$file ${urlroot}/main/linux/$url && chmod +x $dir/$file && clear && $dir/$file "${@:2}"
+        mkdir -p $(dirname $filepath)
+        wget -O $filepath ${REPOSITORY_RAW_ROOT}/main/linux/$urlpath && chmod +x $filepath && clear && $filepath "${@:2}"
     fi
 }
 
+clear
 check_sys
 show_menu

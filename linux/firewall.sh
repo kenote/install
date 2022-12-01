@@ -1,6 +1,6 @@
 #! /bin/bash
 
-current_dir=$(cd $(dirname $0);pwd)
+CURRENT_DIR=$(cd $(dirname $0);pwd)
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -32,9 +32,9 @@ check_sys(){
         release="centos"
     fi
     if (is_oversea); then
-        urlroot="https://raw.githubusercontent.com/kenote/install"
+        REPOSITORY_RAW_ROOT="https://raw.githubusercontent.com/kenote/install"
     else
-        urlroot="https://gitee.com/kenote/install/raw"
+        REPOSITORY_RAW_ROOT="https://gitee.com/kenote/install/raw"
     fi
 }
 
@@ -56,14 +56,18 @@ confirm() {
 
 get_firewall_status() {
     if (is_command firewalld); then
-        status=`systemctl status firewalld | grep "active" | cut -d '(' -f2|cut -d ')' -f1`
         echo -e "Firewall Version: $(firewall-cmd --version)"
     else
-        echo -e "${yellow}Firewall 未安装, 请先安装${plain}"
+        return 1
     fi
 }
 
 read_firewall_env() {
+    get_firewall_status
+    if [[ $? == 1 ]]; then
+        echo -e "${yellow}Firewall 未安装, 请先安装${plain}"
+        return 1
+    fi
     status=`systemctl status firewalld | grep "active" | cut -d '(' -f2|cut -d ')' -f1`
     echo
     if [[ $status == 'running' ]]; then
@@ -142,7 +146,7 @@ remove_port() {
 }
 
 list_rules() {
-    list=(`firewall-cmd --list-rich-rules | sed -E 's/\s/_/g'`)
+    list=(`firewall-cmd --list-rich-rules | grep -E "^rule" | sed -E 's/\s/_/g'`)
     echo -e "===== 防火墙入站规则 ====="
     echo -e "策略\t来源IP\t\t协议类型\t端口"
     for item in "${list[@]}";
@@ -190,7 +194,7 @@ add_rules() {
 remove_rules() {
     _rules=()
     _index=0
-    list=(`firewall-cmd --list-rich-rules | sed -E 's/\s/_/g'`)
+    list=(`firewall-cmd --list-rich-rules | grep -E "^rule" | sed -E 's/\s/_/g'`)
     for item in "${list[@]}";
     do
         _strategy=`echo "$item"  | awk -F '_' '{print $8}'`
@@ -231,9 +235,20 @@ remove_firewall() {
     fi
 }
 
+run_script() {
+    file=$1
+    filepath=`echo "$CURRENT_DIR/$file"`
+    urlpath=`echo "$filepath" | sed 's/\/root\/.scripts\///'`
+    if [[ -f $filepath ]]; then
+        sh $filepath "${@:2}"
+    else
+        mkdir -p $(dirname $filepath)
+        wget -O $filepath ${REPOSITORY_RAW_ROOT}/main/linux/$urlpath && chmod +x $filepath && clear && $filepath "${@:2}"
+    fi
+}
 
 show_menu() {
-    get_firewall_status
+    # get_firewall_status
     num=$1
     if [[ $1 == '' ]]; then
         echo -e "
@@ -263,20 +278,27 @@ show_menu() {
     fi
     case "${num}" in
     0  )
-        exit 0
+        if [[ $CURRENT_DIR == '/root/.scripts' ]]; then
+            run_script help.sh
+        else
+            exit 0
+        fi
     ;;
     1  )
         clear
-        if !(is_command firewalld); then
-            show_menu
-            return 1
-        fi
         read_firewall_env
+        echo
+        read  -n1  -p "按任意键继续" key
+        clear
         show_menu
     ;;
     2 | 3 | 4 )
         clear
-        if !(is_command firewalld); then
+        read_firewall_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
@@ -285,144 +307,215 @@ show_menu() {
             if [[ $status == 'running' ]]; then
                 confirm "Firewall 正在运行, 是否要重启?" "n"
                 if [[ $? == 0 ]]; then
+                    echo
                     systemctl restart firewalld
+                else
+                    clear
+                    show_menu
+                    return 0
                 fi
             else
+                echo
                 systemctl start firewalld
             fi
         ;;
         3)
             if [[ $status == 'running' ]]; then
+                echo
                 systemctl stop firewalld
             else
+                echo
                 echo -e "${yellow}Firewall 当前停止状态, 无需存在${plain}"
+                echo
+                read  -n1  -p "按任意键继续" key
+                clear
+                show_menu
+                return 0
             fi
         ;;
         4)
+            echo
             systemctl restart firewalld
         ;;
         esac
+        clear
         read_firewall_env
+        echo
+        read  -n1  -p "按任意键继续" key
+        clear
         show_menu
     ;;
     5  )
         clear
-        if !(is_command firewalld); then
+        read_firewall_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
+        clear
         firewall-cmd --reload
         read_firewall_env
+        echo
+        read  -n1  -p "按任意键继续" key
+        clear
         show_menu
     ;;
     6  )
         clear
-        if !(is_command firewalld); then
+        read_firewall_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
         list_ports
+        echo
         read  -n1  -p "按任意键继续" key
         clear
-        read_firewall_env
         show_menu
     ;;
     7  )
         clear
-        if !(is_command firewalld); then
+        read_firewall_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
+        clear
         echo -e "${green}----------------"
         echo -e "  开启防火墙端口"
         echo -e "----------------${plain}"
         add_port
+        echo
         read  -n1  -p "按任意键继续" key
         clear
-        read_firewall_env
         show_menu
     ;;
     8  )
         clear
-        if !(is_command firewalld); then
+        read_firewall_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
+        clear
         echo -e "${green}----------------"
         echo -e "  关闭防火墙端口"
         echo -e "----------------${plain}"
         remove_port
+        echo
         read  -n1  -p "按任意键继续" key
         clear
-        read_firewall_env
         show_menu
     ;;
     9  )
         clear
-        if !(is_command firewalld); then
+        read_firewall_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
+        clear
         list_rules
+        echo
         read  -n1  -p "按任意键继续" key
         clear
-        read_firewall_env
         show_menu
     ;;
     10 )
         clear
-        if !(is_command firewalld); then
+        read_firewall_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
+        clear
         echo -e "${green}----------------"
         echo -e "  添加入站规则"
         echo -e "----------------${plain}"
         add_rules
+        echo
         read  -n1  -p "按任意键继续" key
         clear
-        read_firewall_env
         show_menu
     ;;
     11 )
         clear
-        if !(is_command firewalld); then
+        read_firewall_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
+        clear
         echo -e "${green}----------------"
         echo -e "  删除入站规则"
         echo -e "----------------${plain}"
         remove_rules
+        echo
         read  -n1  -p "按任意键继续" key
         clear
-        read_firewall_env
         show_menu
     ;;
     12  )
         clear
-        if (is_command firewalld); then
+        read_firewall_env
+        if [[ $? == 0 ]]; then
             echo -e "${yellow}Firewall 已经安装; 若要重新安装, 请先卸载! ${plain}"
-        else
-            install_firewall
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
+            show_menu
+            return 0
         fi
+        install_firewall
+        echo
         read  -n1  -p "按任意键继续" key
         clear
-        read_firewall_env
         show_menu
     ;;
     13  )
         clear
+        read_firewall_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
+            show_menu
+            return 0
+        fi
         confirm "确定要卸载 Firewall 吗?" "n"
         if [[ $? == 0 ]]; then
             remove_firewall
+            echo
             echo -e "${green}已成功卸载 Firewall ${plain}"
+            echo
         else
-            echo -e "${red}您取消了卸载 Firewall ${plain}"
+            clear
+            show_menu
+            return 0
         fi
         read  -n1  -p "按任意键继续" key
         clear
-        read_firewall_env
         show_menu
     ;;
     *  )

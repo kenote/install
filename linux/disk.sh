@@ -1,5 +1,7 @@
 #! /bin/bash
 
+CURRENT_DIR=$(cd $(dirname $0);pwd)
+
 red='\033[0;31m'
 green='\033[0;32m'
 yellow='\033[0;33m'
@@ -12,6 +14,11 @@ tmp_disks=()
 
 # 判断命令是否存在
 is_command() { command -v $@ &> /dev/null; }
+
+# 判断是否海外网络
+is_oversea() {
+    curl --connect-timeout 5 https://www.google.com -s --head | head -n 1 | grep "HTTP/1.[01] [23].." &> /dev/null;
+}
 
 check_sys(){
     if [[ -f /etc/redhat-release ]]; then
@@ -28,6 +35,11 @@ check_sys(){
         release="ubuntu"
     elif cat /proc/version | grep -q -E -i "centos|red hat|redhat"; then
         release="centos"
+    fi
+    if (is_oversea); then
+        REPOSITORY_RAW_ROOT="https://raw.githubusercontent.com/kenote/install"
+    else
+        REPOSITORY_RAW_ROOT="https://gitee.com/kenote/install/raw"
     fi
 }
 
@@ -54,9 +66,9 @@ get_opt_disks() {
     _type=$1
     get_sys_disk
     _disks=""
-    alldisks=(`fdisk -l | grep -E "(Disk|磁盘) /dev/(s|v)d" | sed -E 's/\:|：//g' | awk -F ' ' '{print $2}'`)
+    alldisks=(`fdisk -l | grep -E "(Disk|磁盘) /dev/(s|v)d" | sed -E 's/\:|：/ /g' | awk -F ' ' '{print $2}'`)
     if [[ $_type == 'expand' ]]; then
-        tmp_disks=(`fdisk -l | grep -E "(Disk|磁盘) /dev/(s|v)d" | sed -E 's/\:|：//g' | awk -F ' ' '{print $2}'`)
+        tmp_disks=(`fdisk -l | grep -E "(Disk|磁盘) /dev/(s|v)d" | sed -E 's/\:|：/ /g' | awk -F ' ' '{print $2}'`)
         return 1
     fi
     for item in ${alldisks[@]};
@@ -204,6 +216,18 @@ expand_disk() {
     df -Th
 }
 
+run_script() {
+    file=$1
+    filepath=`echo "$CURRENT_DIR/$file"`
+    urlpath=`echo "$filepath" | sed 's/\/root\/.scripts\///'`
+    if [[ -f $filepath ]]; then
+        sh $filepath "${@:2}"
+    else
+        mkdir -p $(dirname $filepath)
+        wget -O $filepath ${REPOSITORY_RAW_ROOT}/main/linux/$urlpath && chmod +x $filepath && clear && $filepath "${@:2}"
+    fi
+}
+
 show_menu() {
     num=$1
     if [[ $1 == '' ]]; then
@@ -222,7 +246,11 @@ show_menu() {
     fi
     case "${num}" in
     0  )
-        exit 0
+        if [[ $CURRENT_DIR == '/root/.scripts' ]]; then
+            run_script help.sh
+        else
+            exit 0
+        fi
     ;;
     1  )
         clear
