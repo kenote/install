@@ -226,6 +226,7 @@ show_menu() {
     ;;
     9   )
         clear
+        get_nginx_env
         set_setting
         clear
         show_menu

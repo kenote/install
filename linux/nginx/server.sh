@@ -502,7 +502,7 @@ add_conf() {
         _proxy_confile="[1]virtual::default.conf"
         echo -e "# $_proxy_confile" > $workdir/proxys/${_confile}/$_proxy_confile
         echo -e "location / {" >> $workdir/proxys/${_confile}/$_proxy_confile
-        echo -e "    root $workdir/wwwroot/${_confile}" >> $workdir/proxys/${_confile}/$_proxy_confile
+        echo -e "    root $workdir/wwwroot/${_confile};" >> $workdir/proxys/${_confile}/$_proxy_confile
         echo -e "    index index.html index.htm;" >> $workdir/proxys/${_confile}/$_proxy_confile
         echo -e "}" >> $workdir/proxys/${_confile}/$_proxy_confile
     fi
