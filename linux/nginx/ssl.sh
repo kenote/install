@@ -2,7 +2,7 @@
 
 ssldir=/home/ssl
 workdir=/home
-current_dir=$(cd $(dirname $0);pwd)
+CURRENT_DIR=$(cd $(dirname $0);pwd)
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -34,9 +34,9 @@ check_sys(){
         release="centos"
     fi
     if (is_oversea); then
-        urlroot="https://raw.githubusercontent.com/kenote/install"
+        REPOSITORY_RAW_ROOT="https://raw.githubusercontent.com/kenote/install"
     else
-        urlroot="https://gitee.com/kenote/install/raw"
+        REPOSITORY_RAW_ROOT="https://gitee.com/kenote/install/raw"
     fi
 }
 
@@ -436,10 +436,13 @@ show_menu() {
 
 run_script() {
     file=$1
-    if [[ -f $current_dir/$file ]]; then
-        sh $current_dir/$file "${@:2}"
+    filepath=`echo "$CURRENT_DIR/$file" | sed 's/nginx\/..\///'`
+    urlpath=`echo "$filepath" | sed 's/\/root\/.scripts\///'`
+    if [[ -f $filepath ]]; then
+        sh $filepath "${@:2}"
     else
-        wget -O $current_dir/$file ${urlroot}/main/linux/nginx/$file && chmod +x $current_dir/$file && clear && $current_dir/$file "${@:2}"
+        mkdir -p $(dirname $filepath)
+        wget -O $filepath ${REPOSITORY_RAW_ROOT}/main/linux/$urlpath && chmod +x $filepath && clear && $filepath "${@:2}"
     fi
 }
 

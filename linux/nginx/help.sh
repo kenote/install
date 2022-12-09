@@ -1,8 +1,7 @@
 #! /bin/bash
 
-ssldir=/home/ssl
-workdir=/home
-current_dir=$(cd $(dirname $0);pwd)
+default_workdir=/home/nginx-data
+CURRENT_DIR=$(cd $(dirname $0);pwd)
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -34,9 +33,9 @@ check_sys(){
         release="centos"
     fi
     if (is_oversea); then
-        urlroot="https://raw.githubusercontent.com/kenote/install"
+        REPOSITORY_RAW_ROOT="https://raw.githubusercontent.com/kenote/install"
     else
-        urlroot="https://gitee.com/kenote/install/raw"
+        REPOSITORY_RAW_ROOT="https://gitee.com/kenote/install/raw"
     fi
 }
 
@@ -75,15 +74,28 @@ get_nginx_env() {
 }
 
 get_nginx_status() {
-    if (is_command nginx); then
-        status=`systemctl status nginx | grep "active" | cut -d '(' -f2|cut -d ')' -f1`
+    if (nginx -v &> /dev/null); then
         nginx -v
+        get_nginx_env
+        echo
+        echo -e "工作目录: \t$workdir"
+        echo -e "站点配置: \t$confdir"
+        echo -e "反向代理: \t$workdir/proxys"
+        echo -e "负载均衡: \t$workdir/upstream"
+        echo -e "Stream: \t$workdir/stream"
+        echo -e "日志文件: \t$workdir/logs"
+        echo -e "虚拟主机: \t$workdir/wwwroot"
     else
-        echo -e "${yellow}Nginx 未安装, 请先安装${plain}"
+        return 1
     fi
 }
 
 read_nginx_env() {
+    get_nginx_status
+    if [[ $? == 1 ]]; then
+        echo -e "${yellow}Nginx 未安装, 请先安装${plain}"
+        return 1
+    fi
     status=`systemctl status nginx | grep "active" | cut -d '(' -f2|cut -d ')' -f1`
     echo
     if [[ $status == 'running' ]]; then
@@ -91,11 +103,19 @@ read_nginx_env() {
     else
         echo -e "状态 -- ${red}停止${plain}"
     fi
+}
+
+# 参数设置
+set_setting() {
+    echo -e "${green}--------------------------------"
+    echo -e "  参数设置"
+    echo -e "--------------------------------${plain}"
     echo
+
+    vi $workdir/setting.conf
 }
 
 show_menu() {
-    get_nginx_status
     echo -e "
   ${green}Nginx 管理助手${plain}
 
@@ -106,32 +126,42 @@ show_menu() {
   ${green} 3${plain}. 停止 Nginx
   ${green} 4${plain}. 重启 Nginx
  ------------------------
-  ${green} 5${plain}. 站点管理
-  ${green} 6${plain}. SSL证书管理
+  ${green} 5${plain}. 管理站点
+  ${green} 6${plain}. 负载均衡
+  ${green} 7${plain}. Stream
+  ${green} 8${plain}. SSL证书
+  ${green} 9${plain}. 参数设置
  ------------------------
-  ${green} 7${plain}. 安装 Nginx
-  ${green} 8${plain}. 卸载 Nginx
-  ${green} 9${plain}. 设置工作目录
-  ${green}10${plain}. 更新 Nginx
+  ${green}10${plain}. 安装 Nginx
+  ${green}11${plain}. 卸载 Nginx
+  ${green}12${plain}. 设置工作目录
+  ${green}13${plain}. 更新 Nginx
   "
-    echo && read -p "请输入选择 [0-10]: " num
+    echo && read -p "请输入选择 [0-13]: " num
     echo
     case "${num}" in
     0  )
-        exit 0
+        if [[ $CURRENT_DIR == '/root/.scripts/nginx' ]]; then
+            run_script ../help.sh
+        else
+            exit 0
+        fi
     ;;
     1  )
         clear
-        if !(is_command nginx); then
-            show_menu
-            return 1
-        fi
         read_nginx_env
+        echo
+        read  -n1  -p "按任意键继续" key
+        clear
         show_menu
     ;;
     2 | 3 | 4 )
         clear
-        if !(is_command nginx); then
+        read_nginx_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
@@ -140,69 +170,126 @@ show_menu() {
             if [[ $status == 'running' ]]; then
                 confirm "Nginx 正在运行, 是否要重启?" "n"
                 if [[ $? == 0 ]]; then
+                    echo
                     systemctl restart nginx
+                else
+                    clear
+                    show_menu
+                    return 0
                 fi
             else
+                echo
                 systemctl start nginx
             fi
         ;;
         3)
             if [[ $status == 'running' ]]; then
+                echo
                 systemctl stop nginx
             else
+                echo
                 echo -e "${yellow}Nginx 当前停止状态, 无需存在${plain}"
+                echo
+                read  -n1  -p "按任意键继续" key
+                clear
+                show_menu
+                return 0
             fi
         ;;
         4)
+            echo
             systemctl restart nginx
         ;;
         esac
+        clear
         read_nginx_env
+        echo
+        read  -n1  -p "按任意键继续" key
+        clear
         show_menu
     ;;
     5   )
         clear
-        run_script http_server.sh
+        run_script server.sh
     ;;
     6   )
         clear
-        run_script ssl.sh
+        run_script upstream.sh
     ;;
-    # 
     7   )
         clear
-        run_script install.sh
-        read  -n1  -p "按任意键继续" key
-        clear
-        read_nginx_env
-        show_menu
+        run_script stream.sh
     ;;
     8   )
         clear
-        confirm "确定要卸载 Nginx 吗?" "n"
-        if [[ $? == 0 ]]; then
-            run_script install.sh remove
-            echo -e "${green}已成功卸载 Nginx ${plain}"
-        else
-            echo -e "${red}您取消了卸载 Nginx ${plain}"
-        fi
-        read  -n1  -p "按任意键继续" key
-        clear
-        read_nginx_env
-        show_menu
+        run_script ssl.sh
     ;;
     9   )
         clear
-        if !(is_command nginx); then
+        set_setting
+        clear
+        show_menu
+    ;;
+    # 
+    10  )
+        clear
+        read_nginx_env
+        if [[ $? == 0 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
             show_menu
             return 1
         fi
-        run_script init_conf.sh
+        run_script install.sh
+        sleep 3
+        echo -e "${yellow}设置工作目录...${plain}"
+        run_script init_conf.sh $default_workdir
+        read_nginx_env
+        echo
         read  -n1  -p "按任意键继续" key
         clear
         show_menu
     ;;
-    10  )
+    11  )
+        clear
+        read_nginx_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
+            show_menu
+            return 1
+        fi
+        confirm "确定要卸载 Nginx 吗?" "n"
+        if [[ $? == 0 ]]; then
+            run_script install.sh remove
+            echo
+            read  -n1  -p "按任意键继续" key
+        fi
+        clear
+        show_menu
+    ;;
+    12  )
+        clear
+        read_nginx_env
+        if [[ $? == 1 ]]; then
+            echo
+            read  -n1  -p "按任意键继续" key
+            clear
+            show_menu
+            return 1
+        fi
+        clear
+        echo -e "${yellow}设置工作目录...${plain}"
+        run_script init_conf.sh
+        read_nginx_env
+        echo
+        read  -n1  -p "按任意键继续" key
+        clear
+        show_menu
+    ;;
+    13  )
         clear
         run_script install.sh update
         read  -n1  -p "按任意键继续" key
@@ -210,21 +297,27 @@ show_menu() {
         show_menu
     ;;
     *  )
-        echo -e "${red}请输入正确的数字 [0-10]${plain}"
+        clear
+        echo -e "${red}请输入正确的数字 [0-13]${plain}"
+        sleep 1
+        show_menu
     ;;
     esac
 }
 
 run_script() {
     file=$1
-    if [[ -f $current_dir/$file ]]; then
-        sh $current_dir/$file "${@:2}"
+    filepath=`echo "$CURRENT_DIR/$file" | sed 's/nginx\/..\///'`
+    urlpath=`echo "$filepath" | sed 's/\/root\/.scripts\///'`
+    if [[ -f $filepath ]]; then
+        sh $filepath "${@:2}"
     else
-        wget -O $current_dir/$file ${urlroot}/main/linux/nginx/$file && chmod +x $current_dir/$file && clear && $current_dir/$file "${@:2}"
+        mkdir -p $(dirname $filepath)
+        wget -O $filepath ${REPOSITORY_RAW_ROOT}/main/linux/$urlpath && chmod +x $filepath && clear && $filepath "${@:2}"
     fi
 }
 
 clear
 check_sys
-get_nginx_env
+# get_nginx_env
 show_menu

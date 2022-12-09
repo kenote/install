@@ -1,7 +1,5 @@
 #! /bin/bash
 
-ssldir=/home/ssl
-workdir=/home
 openssl_version=`wget -qO- https://www.openssl.org/source | grep "openssl-1.1.1" | sed 's/<[^>]*>//g' | awk -F ' ' '{print $1}' | sed 's/.tar.gz$//'`
 
 red='\033[0;31m'
@@ -26,9 +24,9 @@ check_sys(){
         release="centos"
     fi
     if (is_oversea); then
-        urlroot="https://raw.githubusercontent.com/kenote/install"
+        REPOSITORY_RAW_ROOT="https://raw.githubusercontent.com/kenote/install"
     else
-        urlroot="https://gitee.com/kenote/install/raw"
+        REPOSITORY_RAW_ROOT="https://gitee.com/kenote/install/raw"
     fi
 }
 
@@ -59,13 +57,11 @@ confirm() {
 install_nginx() {
     if [[ $release == 'centos' ]]; then
         version=`cat /etc/os-release | grep "VERSION_ID" | sed 's/\(.*\)=\"\(.*\)\"/\2/g'`
-        cat > /etc/yum.repos.d/nginx.repo <<EOF
-[nginx]  
-name=nginx repo  
-baseurl=https://nginx.org/packages/mainline/centos/$version/\$basearch/  
-gpgcheck=0  
-enabled=1
-EOF
+        echo -e "[nginx]" > /etc/yum.repos.d/nginx.repo
+        echo -e "name=nginx repo" >> /etc/yum.repos.d/nginx.repo
+        echo -e "baseurl=https://nginx.org/packages/mainline/centos/$version/\$basearch/ " >> /etc/yum.repos.d/nginx.repo
+        echo -e "gpgcheck=0" >> /etc/yum.repos.d/nginx.repo
+        echo -e "enabled=1" >> /etc/yum.repos.d/nginx.repo
         yum install -y nginx
         systemctl enable nginx
         systemctl start nginx
@@ -87,7 +83,7 @@ remove_nginx() {
 update_nginx(){
     echo -e "更新 nginx 替换系统原有的，以支持 TLS1.3"
     if !(command -v git); then
-        curl -o- ${urlroot}/main/linux/install-git.sh | bash
+        curl -o- ${REPOSITORY_RAW_ROOT}/main/linux/install-git.sh | bash
     fi
     if [[ $release == 'centos' ]]; then
         yum install -y gcc gcc-c clang automake make autoconf libtool zlib-devel libatomic_ops-devel pcre-devel openssl-devel libxml2-devel libxslt-devel gd-devel GeoIP-devel gperftools-devel  perl-devel perl-ExtUtils-Embed

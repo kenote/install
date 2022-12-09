@@ -94,8 +94,6 @@
   $HOME/.scripts/docker/help.sh
   ```
 
-## 单独安装模块
-
 - ### 安装最新版 Git
   ```bash
   REPO_RAW=`curl --connect-timeout 5 https://www.google.com -s --head | head -n 1 | grep "HTTP/1.[01] [23].." &> /dev/null && echo "raw.githubusercontent.com/kenote/install" || echo "gitee.com/kenote/install/raw"`; \
