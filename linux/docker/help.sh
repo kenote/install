@@ -197,7 +197,7 @@ set_workdir() {
         sed -i "s/$(cat $HOME/.docker_profile | grep -E "^DOCKER_WORKDIR=")/DOCKER_WORKDIR=$_workdir/" $HOME/.docker_profile
     else
         echo -e "DOCKER_WORKDIR=$_workdir" > $HOME/.docker_profile
-    if
+    fi
     mkdir -p $_workdir
 }
 
