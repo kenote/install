@@ -99,6 +99,7 @@ show_menu() {
                 clear
                 show_menu
             ;;
+            esac
             break
         done
     ;;
