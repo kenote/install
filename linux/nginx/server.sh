@@ -252,7 +252,7 @@ set_conf_file() {
     else
         _listen=$_default_listen
     fi
-
+    site_name=`echo $_confile | sed 's/\.conf$//'`
     echo -e "" > "$confdir/${_confile}"
     if [[ $_forcehttps == 'on' ]]; then
         echo -e "server {" >> "$confdir/${_confile}"
@@ -281,16 +281,16 @@ set_conf_file() {
     fi
     echo -e "    " >> "$confdir/${_confile}"
     echo -e "    # 反向代理/Fastcgi/目录映射/文件缓存/参数配置" >> "$confdir/${_confile}"
-    echo -e "    include ${workdir}/proxys/${_confile}/*.conf;" >> "$confdir/${_confile}"
+    echo -e "    include ${workdir}/proxys/${site_name}/*.conf;" >> "$confdir/${_confile}"
     echo -e "    " >> "$confdir/${_confile}"
     echo -e "    # 日志" >> "$confdir/${_confile}"
-    echo -e "    access_log  ${workdir}/logs/${_confile}/access.log;" >> "$confdir/${_confile}"
-    echo -e "    error_log  ${workdir}/logs/${_confile}/error.log;" >> "$confdir/${_confile}"
+    echo -e "    access_log  ${workdir}/logs/${site_name}/access.log;" >> "$confdir/${_confile}"
+    echo -e "    error_log  ${workdir}/logs/${site_name}/error.log;" >> "$confdir/${_confile}"
     echo -e "    " >> "$confdir/${_confile}"
     echo -e "}" >> "$confdir/${_confile}"
 
-    mkdir -p "$workdir/proxys/${_confile}"
-    mkdir -p "$workdir/logs/${_confile}"
+    mkdir -p "$workdir/proxys/${site_name}"
+    mkdir -p "$workdir/logs/${site_name}"
 }
 
 # 配置文件
@@ -470,12 +470,12 @@ set_base_conf() {
             continue
         fi
         _eprot=`[[ ! $_port =~ ^(80|443)$ ]] && echo "::$_port"`
-        _confile=`[[ $_domain == '_' ]] && echo "default$_eprot" || echo "$_domain$_eprot"`
-        if [ -f "$confdir/${_confile}.conf" ]; then
+        site_name=`[[ $_domain == '_' ]] && echo "default$_eprot" || echo "$_domain$_eprot"`
+        if [ -f "$confdir/${site_name}.conf" ]; then
             echo -e "${red}检测到有相同配置！${plain}"
             continue
         fi
-        echo -e "$_confile"
+        echo -e "$site_name"
         break
     done
 }
@@ -493,18 +493,18 @@ add_conf() {
         listen_port="$_port default_server"
     fi
 
-    set_conf_file --domain $_domain --port $_port --confile ${_confile}.conf
+    set_conf_file --domain $_domain --port $_port --confile ${site_name}.conf
 
     confirm "是否创建站点根目录?" "n"
     if [[ $? == 0 ]]; then
-        mkdir -p $workdir/wwwroot/${_confile}
-        wget --no-check-certificate -qO $workdir/wwwroot/${_confile}/index.html $REPOSITORY_RAW_URL/html/index.html
+        mkdir -p $workdir/wwwroot/${site_name}
+        wget --no-check-certificate -qO $workdir/wwwroot/${site_name}/index.html $REPOSITORY_RAW_URL/html/index.html
         _proxy_confile="[1]virtual::default.conf"
-        echo -e "# $_proxy_confile" > $workdir/proxys/${_confile}/$_proxy_confile
-        echo -e "location / {" >> $workdir/proxys/${_confile}/$_proxy_confile
-        echo -e "    root $workdir/wwwroot/${_confile};" >> $workdir/proxys/${_confile}/$_proxy_confile
-        echo -e "    index index.html index.htm;" >> $workdir/proxys/${_confile}/$_proxy_confile
-        echo -e "}" >> $workdir/proxys/${_confile}/$_proxy_confile
+        echo -e "# $_proxy_confile" > $workdir/proxys/${site_name}/$_proxy_confile
+        echo -e "location / {" >> $workdir/proxys/${site_name}/$_proxy_confile
+        echo -e "    root $workdir/wwwroot/${site_name};" >> $workdir/proxys/${site_name}/$_proxy_confile
+        echo -e "    index index.html index.htm;" >> $workdir/proxys/${site_name}/$_proxy_confile
+        echo -e "}" >> $workdir/proxys/${site_name}/$_proxy_confile
     fi
 
     confirm "是否要重启 Nginx?" "n"
