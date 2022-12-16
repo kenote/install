@@ -1,0 +1,18 @@
+version: '3.3'
+
+services:
+  vsftpd:
+    image: fauria/vsftpd
+    container_name: vsftpd
+    restart: always
+    volumes:
+      - '${DATA_DIR:-./data}:/home/vsftpd'
+      - './logs:/var/log/vsftpd'
+      - './conf:/etc/vsftpd'
+    environment:
+      - FTP_USER=${FTP_USER:-admin}
+      - FTP_PASS=${FTP_PASS:-admin}
+    ports:
+      - '20:20'
+      - '${FTP_PORT:-21}:21'
+      - '21100-21110:21100-21110'
