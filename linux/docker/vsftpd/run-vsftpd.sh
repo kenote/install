@@ -29,6 +29,16 @@ if [ "$PASV_ADDRESS" = "**IPv4**" ]; then
     export PASV_ADDRESS=$(/sbin/ip route|awk '/default/ { print $3 }')
 fi
 
+set_variable() {
+    _name=$1
+    _value=$2
+    if (cat /etc/vsftpd/vsftpd.conf | grep -E "^$_name=" &> /dev/null;); then
+        sed -i "s/$(cat /etc/vsftpd/vsftpd.conf | grep -E "^$_name=")/$_name=$_value/" /etc/vsftpd/vsftpd.conf
+    else
+        echo -e "$_name=$_value" >> /etc/vsftpd/vsftpd.conf
+    fi
+}
+
 set_variable "pasv_address" ${PASV_ADDRESS}
 set_variable "pasv_max_port" ${PASV_MAX_PORT}
 set_variable "pasv_min_port" ${PASV_MIN_PORT}
@@ -66,13 +76,3 @@ fi
 
 # Run vsftpd:
 &>/dev/null /usr/sbin/vsftpd /etc/vsftpd/vsftpd.conf
-
-set_variable() {
-    _name=$1
-    _value=$2
-    if (cat /etc/vsftpd/vsftpd.conf | grep -E "^$_name=" &> /dev/null;); then
-        sed -i "s/$(cat /etc/vsftpd/vsftpd.conf | grep -E "^$_name=")/$_name=$_value/" /etc/vsftpd/vsftpd.conf
-    else
-        echo -e "$_name=$_value" >> /etc/vsftpd/vsftpd.conf
-    fi
-}

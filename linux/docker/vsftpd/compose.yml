@@ -9,6 +9,7 @@ services:
       - '${DATA_DIR:-./data}:/home/vsftpd'
       - './logs:/var/log/vsftpd'
       - './conf:/etc/vsftpd'
+      - './run-vsftpd.sh:/usr/sbin/run-vsftpd.sh'
     environment:
       - FTP_USER=${FTP_USER:-admin}
       - FTP_PASS=${FTP_PASS:-admin}
