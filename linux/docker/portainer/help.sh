@@ -85,7 +85,7 @@ set_dashboard_env() {
         HTTP_PORT=`docker inspect ${CONTAINER_ID} | jq -r ".[0].NetworkSettings.Ports[\"${HTTP_PORT}/tcp\"][0].HostPort"`
         HTTPS_PORT=`docker inspect ${CONTAINER_ID} | jq -r ".[0].NetworkSettings.Ports[\"${HTTPS_PORT}/tcp\"][0].HostPort"`
     fi
-    echo -e "${yellow}Docker 项目会安装在 ${ROOT_DIR}/ 目录下"
+    echo -e "${yellow}Docker 项目会安装在 ${ROOT_DIR}/ 目录下${plain}"
     while read -p "安装目录[portainer]: " _name
     do
         if [[ $_name == '' ]]; then
