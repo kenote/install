@@ -1,6 +1,8 @@
 #!/bin/bash
 
 CURRENT_DIR=$(cd $(dirname $0);pwd)
+LOCAL_IP=`hostname -I | awk -F ' ' '{print $1}'`
+NETWORK_IP=`wget -qO- ip.p3terx.com | sed -n '1p'`
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -34,10 +36,8 @@ confirm() {
 pre_check(){
     if (is_oversea); then
         REPOSITORY_RAW_ROOT="https://raw.githubusercontent.com/kenote/install"
-        DOCKER_COMPOSE_REPO="https://github.com"
     else
         REPOSITORY_RAW_ROOT="https://gitee.com/kenote/install/raw"
-        DOCKER_COMPOSE_REPO="https://get.daocloud.io"
     fi
     REPOSITORY_RAW_URL="${REPOSITORY_RAW_ROOT}/main/linux/docker/vsftpd"
     curl -s ${REPOSITORY_RAW_ROOT}/main/linux/docker/help.sh | bash -s install
@@ -57,6 +57,23 @@ read_vsftpd_env() {
     else
         echo -e "状态 -- ${red}停止${plain}"
     fi
+
+    FTP_USER=`docker inspect ${CONTAINER_ID} | jq -r ".[0].Config.Env[]" | grep "FTP_USER" | sed 's/\(.*\)=\(.*\)/\2/g'`
+    FTP_PASS=`docker inspect ${CONTAINER_ID} | jq -r ".[0].Config.Env[]" | grep "FTP_PASS" | sed 's/\(.*\)=\(.*\)/\2/g'`
+    FTP_PORT=`docker inspect ${CONTAINER_ID} | jq -r ".[0].NetworkSettings.Ports[\"21/tcp\"][0].HostPort"`
+    DATA_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[0].Mounts[] | select(.Destination == \"/home/vsftpd\") | .Source"`
+
+    echo
+    echo -e "----------------------------------------------------------------------"
+    echo -e " 公网 IP -- ${NETWORK_IP}"
+    echo -e " 内网 IP -- ${LOCAL_IP}"
+    echo -e " 默认端口 -- ${FTP_PORT}"
+    echo
+    echo -e " 虚拟目录 -- ${DATA_DIR}"
+    echo -e " 默认用户 -- ${FTP_USER}"
+    echo -e " 默认密码 -- ${FTP_PASS}"
+    echo -e "----------------------------------------------------------------------"
+    echo
 }
 
 set_vsftpd_env() {
@@ -161,6 +178,15 @@ install_vsftpd() {
     docker-compose up -d
 
     txt2json conf/virtual_users.txt | jq > conf/virtual_users.json
+
+    echo
+    echo -e "------------------------------------------"
+    echo -e " 虚拟用户目录 -- ${DATA_DIR}"
+    echo -e " 默认FTP用户 -- ${FTP_USER}"
+    echo -e " 默认FTP密码 -- ${FTP_PASS}"
+    echo -e " 默认FTP端口 -- ${FTP_PORT}"
+    echo -e "------------------------------------------"
+    echo
 }
 
 set_vsftpd() {
@@ -194,7 +220,7 @@ set_vsftpd() {
     # 刷新虚拟用户
     if [ -f conf/virtual_users.json ]; then
         json=`echo $(cat conf/virtual_users.json)`
-        json=`echo $json | jq ".[0][\"useraname\"]=\"${FTP_USER}\""`
+        json=`echo $json | jq ".[0][\"username\"]=\"${FTP_USER}\""`
         json=`echo $json | jq ".[0][\"password\"]=\"${FTP_PASS}\""`
         echo $json | jq > conf/virtual_users.json
     else
@@ -205,8 +231,18 @@ set_vsftpd() {
 
     # 重启 Vsftpd
     clear
-    echo -e "正在启动 Vsftpd..."
-    docker-compose restart
+    echo -e "正在重置 Vsftpd..."
+    docker-compose down
+    docker-compose up -d
+
+    echo
+    echo -e "------------------------------------------"
+    echo -e " 虚拟用户目录 -- ${DATA_DIR}"
+    echo -e " 默认FTP用户 -- ${FTP_USER}"
+    echo -e " 默认FTP密码 -- ${FTP_PASS}"
+    echo -e " 默认FTP端口 -- ${FTP_PORT}"
+    echo -e "------------------------------------------"
+    echo
 }
 
 remove_vsftpd() {
@@ -240,13 +276,17 @@ virtual_user_list() {
 
     json=`cat conf/virtual_users.json`
     list=(`echo $json | jq '.[].username' | sed -E 's/\"//g'`)
-    echo -e "ID\t用户名"
+    echo -e "ID\t用户名\t\t密码"
     _id=0
     for item in ${list[@]};
     do
-        # json=`echo $json | jq ".[] | select(.username == \"$item\") | .password"`
         if [[ $_id -gt 0 ]]; then
-            echo -e "${_id}\t${item}"
+            _space="\t"
+            if [[ ${#item} -lt 8 ]]; then
+                _space="\t\t"
+            fi
+            password=`echo $json | jq ".[] | select(.username == \"${item}\").password" | sed -E 's/\"//g'`
+            echo -e "${_id}\t${item}${_space}${password}"
         fi
         _id=`expr $_id + 1`
     done
@@ -266,8 +306,6 @@ virtual_user_list() {
         break
     done
 
-    # echo -e "username -- $username"
-
     clear
     echo -e "${green}--------------------------------"
     echo -e "  选择虚拟用户 -[${username}]-"
@@ -278,18 +316,19 @@ virtual_user_list() {
     select item in ${list[@]};
     do
         _opt=$item
-        # echo -e "$item"
         case "${item}" in
         编辑)
             edit_virtual_user ${username}
+            echo
+            read  -n1  -p "按任意键继续" key
+            show_menu 5
         ;;
         删除)
             confirm "确定要删除虚拟用户-[${username}]-?" "n"
             if [[ $? == 0 ]]; then
                 del_virtual_user ${username}
-            else
-                show_menu 5
             fi
+            show_menu 5
         ;;
         返回)
             show_menu 5
@@ -343,7 +382,7 @@ add_virtual_user() {
     json2txt "$json" > conf/virtual_users.txt
 
     /usr/bin/db_load -T -t hash -f ${WORK_DIR}/conf/virtual_users.txt ${WORK_DIR}/conf/virtual_users.db
-
+    /usr/bin/db_load -T -t hash -f conf/virtual_users.txt conf/virtual_users.db
     
     docker-compose restart
     echo
@@ -381,13 +420,6 @@ edit_virtual_user() {
 
     /usr/bin/db_load -T -t hash -f ${WORK_DIR}/conf/virtual_users.txt ${WORK_DIR}/conf/virtual_users.db
 
-    # if [[ $_id == 0 ]]; then
-    #     sed -i "s/$(cat .env | grep -E "^FTP_PASS=")/FTP_PASS=$_password/" .env
-    #     docker-compose down
-    #     docker-compose up -d
-    # else
-    #     docker-compose restart
-    # fi
     docker-compose restart
 }
 
@@ -398,7 +430,9 @@ del_virtual_user() {
     WORK_DIR=`docker inspect ${CONTAINER_ID} | jq -r ".[0].Config.Labels[\"com.docker.compose.project.working_dir\"]"`
     cd ${WORK_DIR}
     json=`cat conf/virtual_users.json | jq "del(.[] | select(.username == \"$_username\"))"`
+    echo $json | jq > conf/virtual_users.json
     json2txt "$json" > conf/virtual_users.txt
+    rm -rf ${WORK_DIR}/conf/virtual_users.db
     /usr/bin/db_load -T -t hash -f ${WORK_DIR}/conf/virtual_users.txt ${WORK_DIR}/conf/virtual_users.db
 
     docker-compose restart
@@ -415,7 +449,7 @@ txt2json() {
         if [[ $_user == '' ]]; then
             _user=$item
         else
-            json=`echo $json | jq ".[$i][\"useraname\"]=\"$_user\""`
+            json=`echo $json | jq ".[$i][\"username\"]=\"$_user\""`
             json=`echo $json | jq ".[$i][\"password\"]=\"$item\""`
             _user=""
             i=`expr $i + 1`
@@ -446,7 +480,7 @@ show_menu() {
     num=$1
     if [[ $1 == '' ]]; then
         echo -e "
-  ${green}Vsftpd 管理${plain}
+  ${green}Vsftpd 服务管理${plain}
 
   ${green} 0${plain}. 退出脚本
  ------------------------
@@ -532,8 +566,6 @@ show_menu() {
         show_menu
     ;;
     5  )
-        # 虚拟用户管理
-        
         clear
         read_vsftpd_env
         if [[ $? == 1 ]]; then
@@ -553,7 +585,6 @@ show_menu() {
         show_menu
     ;;
     6  )
-        # 添加虚拟用户
         clear
         read_vsftpd_env
         if [[ $? == 1 ]]; then
@@ -566,9 +597,7 @@ show_menu() {
         
         clear
         add_virtual_user
-        # read_vsftpd_env
         read  -n1  -p "按任意键继续" key
-        
         clear
         show_menu
     ;;
