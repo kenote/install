@@ -66,8 +66,9 @@ show_menu() {
   ${green} 2${plain}. ServerStatus -- 多服务器监控
   ${green} 3${plain}. FRP -- 内网穿透服务
   ${green} 4${plain}. Vsftpd -- FTP服务端
+  ${green} 5${plain}. SpeedTest -- 网络测速
   "
-        echo && read -p "请输入选择 [0-4]: " num
+        echo && read -p "请输入选择 [0-5]: " num
         echo
     fi
     
@@ -107,8 +108,11 @@ show_menu() {
     4  )
         run_script vsftpd/help.sh
     ;;
+    5  )
+        run_script speedtest/help.sh
+    ;;
     *  )
-        echo -e "${red}请输入正确的数字 [0-4]${plain}"
+        echo -e "${red}请输入正确的数字 [0-5]${plain}"
     ;;
     esac
 }

@@ -673,7 +673,7 @@ show_menu() {
 
 run_script() {
     file=$1
-    filepath=`echo "$CURRENT_DIR/$file" | sed 's/nginx\/..\///'`
+    filepath=`echo "$CURRENT_DIR/$file" | sed 's/vsftpd\/..\///'`
     urlpath=`echo "$filepath" | sed 's/\/root\/.scripts\///'`
     if [[ -f $filepath ]]; then
         sh $filepath "${@:2}"

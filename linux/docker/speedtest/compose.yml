@@ -1,0 +1,12 @@
+version: '3.3'
+
+services:
+  speedtest:
+    image: adolfintel/speedtest
+    container_name: speedtest
+    restart: always
+    environment:
+      - TITLE=${TITLE:-SpeedTest}
+      - MODE=standalone
+    ports:
+      - ${PORT:-8086}:80
