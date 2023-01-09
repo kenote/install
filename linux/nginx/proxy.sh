@@ -101,7 +101,7 @@ proxy_list() {
 
     if [[ $num == 'x' ]]; then
         return 1
-    elif [[ $num =~ ^[0-9]+$ && $num -lt $_id && $num -ge 1 ]]; then
+    elif [[ $num =~ ^[0-9]+$ && $num -le $_id && $num -ge 1 ]]; then
         clear
         proxy_file_opts $_confile "${list[$(expr $num - 1)]}"
     else
