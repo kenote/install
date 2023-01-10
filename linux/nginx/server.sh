@@ -163,13 +163,13 @@ install_cert() {
 
     _parameter="--domain $_domain $_parameter"
 
-    # 更换配置
-    set_conf_file $_parameter
-
     # 申请证书
     run_script ssl.sh apply_cert --domain $_domain $_debug
     # 创建证书目录
     mkdir -p $workdir/ssl/$_domain
+    # 更换配置
+    set_conf_file $_parameter
+    sleep 5
     # 安装证书
     run_script ssl.sh install_cert --domain $_domain --target $workdir/ssl/$_domain
 

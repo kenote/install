@@ -143,7 +143,7 @@ apply_cert() {
             shift
         ;;
         *)
-            _err "Unknown parameter : $1"
+            echo -e "${red}Unknown parameter : $1${plain}"
             return 1
             shift
         ;;
@@ -212,7 +212,7 @@ install_cert() {
             shift
         ;;
         *)
-            _err "Unknown parameter : $1"
+            echo -e "${red}Unknown parameter : $1${plain}"
             return 1
             shift
         ;;
@@ -272,7 +272,7 @@ cer2jks() {
             shift
         ;;
         *)
-            _err "Unknown parameter : $1"
+            echo -e "${red}Unknown parameter : $1${plain}"
             return 1
             shift
         ;;
