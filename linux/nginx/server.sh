@@ -171,7 +171,7 @@ install_cert() {
     set_conf_file $_parameter
     sleep 5
     # 安装证书
-    run_script ssl.sh install_cert --domain $_domain --target $workdir/ssl/$_domain
+    run_script ssl.sh install_cert --domain $_domain --target $workdir/ssl
 
 }
 
