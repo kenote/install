@@ -207,6 +207,7 @@ expand_disk() {
         fi
     fi
     echo -e "${yellow}扩容磁盘分区-[${_disk}]-${plain}"
+    LANG=en_US.UTF-8
     growpart $_disk 1
     sleep 1
     _partition=`fdisk -lu $_disk | grep -E "^$_disk" | awk -F ' ' '{print $1}'`
